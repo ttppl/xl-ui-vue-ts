@@ -1,0 +1,148 @@
+@baseColors:{
+  primary: #409EFF;//primary
+  white: #FFFFFF;
+  black: #000000;
+  warn: #e6a23c;//warn
+  notice: #909399;//notice
+  error: #f56c6c;//error
+  success: #67c23a;//success
+}
+@lightFade:20%;
+
+each(@baseColors, {
+  .xl-color-@{key}{
+    color: @value;
+  }
+  .xl-color-@{key}-light{
+    color:fade(@value,@lightFade)
+  }
+  .xl-color-bg-@{key}{
+    background-color: @value;
+  }
+  .xl-color-bg-@{key}-light{
+    background-color:fade(@value,@lightFade)
+  }
+  .xl-color-bd-@{key}{
+    border-color: @value;
+  }
+  .xl-color-bd-@{key}-light{
+    border-color:fade(@value,@lightFade)
+  }
+  .xl-color-hover-@{key}:hover{
+    color: @value;
+  }
+  .xl-color-hover-@{key}-light:hover{
+    color:fade(@value,@lightFade)
+  }
+  .xl-color-bg-hover-@{key}:hover{
+    background-color: @value;
+  }
+  .xl-color-bg-hover-@{key}-light:hover{
+    background-color:fade(@value,@lightFade)
+  }
+  .xl-color-bd-hover-@{key}:hover{ 
+    border-color: @value;
+  }
+  .xl-color-bd-hover-@{key}-light:hover{ 
+    border-color: fade(@value,@lightFade);
+  }
+  .xl-color-focus-@{key}:focus-within{
+    color: @value;
+  }
+  .xl-color-focus-@{key}-light:focus-within{
+    color: fade(@value,@lightFade);
+  }
+  .xl-color-bg-focus-@{key}:focus-within{
+    background-color: @value;
+  }
+  .xl-color-bg-focus-@{key}-light:focus-within{
+    background-color: fade(@value,@lightFade);
+  }
+  .xl-color-bd-focus-@{key}:focus-within{
+    border-color: @value;
+  }
+  .xl-color-bd-focus-@{key}-light:focus-within{
+    border-color: fade(@value,@lightFade);
+  }
+  
+
+  //bookmark
+  .xl-color-bookmark-bg-@{key} when (@key=primary),(@key=white),(@key=warn),(@key=notice),(@key=error),(@key=success){
+    background: linear-gradient(-135deg, transparent 10px, @value 0) top right !important;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+  }
+  .xl-color-bookmark-bg-@{key}-light when (@key=primary),(@key=white),(@key=warn),(@key=notice),(@key=error),(@key=success){
+    background: linear-gradient(-135deg, transparent 10px, fade(@value,@lightFade) 0) top right;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+  }
+
+
+
+  //card-header
+  .xl-color-card-header-@{key}{
+    background: linear-gradient(-145deg, transparent 15px, @value 0);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+  }
+  .xl-color-card-header-@{key}-light{
+    background: linear-gradient(-145deg, transparent 15px, fade(@value,@lightFade) 0);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+  }
+
+
+  //三角标志
+  .triangle-primary::before when (@key=1){
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7.5px solid @value;
+    // padding: @padding;
+    margin: 0 10px 0 0;
+    vertical-align:middle;
+    display:inline-block;
+  }
+  //menu-item hover
+  .menu-item:hover when (@key=12){
+    background-color: @value !important;
+  }
+  .xl-tag-label-color when (@key=1){
+    color:@value;
+  }
+  .sub-menu>:first-child:hover when (@key=12){
+    background-color: @value !important;
+  }
+
+  //分割线
+  .divider-vtc-@{key} when (@key=1),(@key=7){
+    border-right:0.1px dashed @value;
+  }
+  .divider-hrz-@{key} when (@key=1),(@key=7){
+    border-top:0.25px dashed @value;
+  }
+
+  //字体风格
+  .fs-int when (@key=3){
+    font-size: 18px;
+    font-family: Arial;
+    font-weight: 400;
+    color: @value;
+  }
+  
+  .fs-bold when (@key=3){
+    font-size: 18px;
+    font-family: Arial;
+    font-weight: 700;
+    color: @value;
+  }
+  .fs-bold-@{key} when (@key=1){
+    font-size: 18px;
+    font-family: Arial;
+    font-weight: 700;
+    color: @value;
+  }
+});

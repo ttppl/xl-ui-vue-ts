@@ -1,0 +1,42 @@
+{
+  "name": "xl-ui-vue-ts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "buildc": "vue-cli-service build --no-clean --mode buildcomponent",
+    "build": "vue-cli-service build --target lib --name xl-ui --dest lib packages/index.js --no-clean",
+    "lint": "vue-cli-service lint",
+    "pack": "npm run build && npm pack && npm i xl-ui-vue3-0.0.1-beta-0.0.5.tgz && npm run serve",
+    "buildInput": "vue-cli-service build --target lib --name index --dest lib/xl-input packages/input/index.js",
+    "buildAll": "vue-cli-service build --target lib --name index --dest lib/xl-input packages/input/index.js && vue-cli-service build --target lib --name index --dest lib/xl-table packages/table/index.js && vue-cli-service build --target lib --name index --dest lib/xl-table-column packages/tableColumn/index.js",
+    "lib": "cross-env NODE_ENV=production rimraf ./lib && node ./build/rollup.build"
+  },
+  "dependencies": {
+    "core-js": "^3.6.5",
+    "vue": "^3.0.0",
+    "vue-class-component": "^8.0.0-0",
+    "vue-router": "^4.0.0-0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.18.0",
+    "@typescript-eslint/parser": "^4.18.0",
+    "@vue/cli-plugin-babel": "~4.5.0",
+    "@vue/cli-plugin-eslint": "~4.5.0",
+    "@vue/cli-plugin-router": "~4.5.0",
+    "@vue/cli-plugin-typescript": "~4.5.0",
+    "@vue/cli-service": "~4.5.0",
+    "@vue/compiler-sfc": "^3.0.0",
+    "@vue/eslint-config-standard": "^5.1.2",
+    "@vue/eslint-config-typescript": "^7.0.0",
+    "eslint": "^6.7.2",
+    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "eslint-plugin-vue": "^7.0.0",
+    "less": "^3.0.4",
+    "less-loader": "^5.0.0",
+    "typescript": "~4.1.5"
+  }
+}
