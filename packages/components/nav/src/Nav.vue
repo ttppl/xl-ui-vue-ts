@@ -22,6 +22,7 @@ import { on, off } from '@/utils/dom'
 import { debounce } from '@/utils/utils'
 import Icon from '@/components/icon/src/Icon'
 import Popup from '@/components/popup/src/Popup'
+import { zIndexManager } from '@/utils/zIndexManager'
 export default {
   name: 'XlNav',
 
@@ -83,7 +84,8 @@ export default {
     })
     const navBarStyle = computed(() => {
       const style = {
-        textAlign: props.position
+        textAlign: props.position,
+        zIndex: zIndexManager.max
       }
       return style
     })
@@ -113,7 +115,6 @@ export default {
     width: 100%;
     box-sizing: border-box;
     background-color: white;
-    z-index: 9999;
     .icon-rotate{
       transform: rotate(180deg);
     }
