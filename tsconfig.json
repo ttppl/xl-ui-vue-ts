@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "strict": true,
+    "strict": false,
     "jsx": "preserve",
     "importHelpers": true,
     "moduleResolution": "node",
@@ -17,7 +17,10 @@
     ],
     "paths": {
       "@/*": [
-        "src/*"
+        "packages/*",
+      ],
+      "~/*": [
+        "example/*",
       ]
     },
     "lib": [
@@ -28,11 +31,13 @@
     ]
   },
   "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+    "packages/**/*.vue",
+    "example/**/*.ts",
+    "example/**/*.tsx",
+    "example/**/*.vue",
+    "typings.d.ts"
   ],
   "exclude": [
     "node_modules"

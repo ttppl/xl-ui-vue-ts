@@ -1,4 +1,4 @@
-import Pagenation from './src/Pagenation'
+import Pagenation from './src/Pagenation.vue'
 
 Pagenation.install = (App) => {
   App.component(Pagenation.name, Pagenation)

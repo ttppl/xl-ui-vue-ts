@@ -18,7 +18,7 @@
 <script lang="javascript">
 // eslint-disable-next-line no-unused-vars
 import { defineComponent, computed, ref, PropType, onMounted, onBeforeUnmount } from 'vue'
-import { EVENT_CODE } from '@/ts/utils'
+import { EVENT_CODE } from '@/utils'
 import { on, off } from '@/utils/dom'
 const TypeMap = {
   success: 'success',

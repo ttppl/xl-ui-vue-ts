@@ -3,7 +3,7 @@ import App from './App.vue'
 import router from './router'
 import hljs from 'highlight.min.js'
 import '@/styles'
-import ExampleForm from './components/ExampleForm'
+import ExampleForm from './components/ExampleForm.vue'
 // import xlui from 'xl-ui-vue3'
 
 const app = createApp(App)

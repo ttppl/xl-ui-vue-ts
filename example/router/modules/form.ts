@@ -6,7 +6,7 @@ const form = [
       keepAlive: false
     },
     components: {
-      main: () => import('~/components/Button')
+      main: () => import('~/components/Button.vue')
     }
   },
   {
@@ -16,7 +16,7 @@ const form = [
       keepAlive: false
     },
     components: {
-      main: () => import('~/components/Input')
+      main: () => import('~/components/Input.vue')
     }
   }
 ]

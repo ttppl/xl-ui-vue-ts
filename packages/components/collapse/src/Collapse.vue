@@ -67,6 +67,8 @@ export default defineComponent({
 
           el.dataset.oldPaddingTop = el.style.paddingTop
           el.dataset.oldPaddingBottom = el.style.paddingBottom
+          el.dataset.oldMarginTop = el.style.marginTop
+          el.dataset.oldMarginBottom = el.style.marginBottom
 
           el.style.height = '0'
           el.style.paddingTop = 0
@@ -77,13 +79,13 @@ export default defineComponent({
           el.dataset.oldOverflow = el.style.overflow
           if (el.scrollHeight !== 0) {
             el.style.height = el.scrollHeight + 'px'
-            el.style.paddingTop = el.dataset.oldPaddingTop
-            el.style.paddingBottom = el.dataset.oldPaddingBottom
           } else {
             el.style.height = ''
-            el.style.paddingTop = el.dataset.oldPaddingTop
-            el.style.paddingBottom = el.dataset.oldPaddingBottom
           }
+          el.style.paddingTop = el.dataset.oldPaddingTop
+          el.style.paddingBottom = el.dataset.oldPaddingBottom
+          el.style.marginTop = el.dataset.oldMarginTop
+          el.style.marginBottom = el.dataset.oldMarginBottom
 
           el.style.overflow = 'hidden'
         },
@@ -98,6 +100,8 @@ export default defineComponent({
           if (!el.dataset) el.dataset = {}
           el.dataset.oldPaddingTop = el.style.paddingTop
           el.dataset.oldPaddingBottom = el.style.paddingBottom
+          el.dataset.oldMarginTop = el.style.marginTop
+          el.dataset.oldMarginBottom = el.style.marginBottom
           el.dataset.oldOverflow = el.style.overflow
 
           el.style.height = el.scrollHeight + 'px'
@@ -111,6 +115,8 @@ export default defineComponent({
             el.style.height = 0
             el.style.paddingTop = 0
             el.style.paddingBottom = 0
+            el.style.marginTop = 0
+            el.style.marginBottom = 0
           }
         },
 
@@ -120,6 +126,8 @@ export default defineComponent({
           el.style.overflow = el.dataset.oldOverflow
           el.style.paddingTop = el.dataset.oldPaddingTop
           el.style.paddingBottom = el.dataset.oldPaddingBottom
+          el.style.marginTop = el.dataset.oldMarginTop
+          el.style.marginBottom = el.dataset.oldMarginBottom
         }
       }
     }
@@ -130,7 +138,7 @@ export default defineComponent({
 <style lang="less">
 .collapse-transition {
   -webkit-transition: .4s height ease-in-out, .4s padding-top ease-in-out, .4s padding-bottom ease-in-out;
-  transition: .4s height ease-in-out, .4s padding-top ease-in-out, .4s padding-bottom ease-in-out;
+  transition: .4s height ease-in-out, .4s padding-top ease-in-out, .4s padding-bottom ease-in-out, .4s margin-top ease-in-out, .4s margin-bottom ease-in-out;
   pointer-events:none;
 }
 </style>

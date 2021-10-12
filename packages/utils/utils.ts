@@ -21,7 +21,7 @@ export const trim = function (s) {
 }
 
 export const getWindowSize = function () {
-  const size = {}
+  const size:any = {}
   size.width = window.innerWidth
   size.height = window.innerHeight
   return size
@@ -42,14 +42,14 @@ export function getDate (dateString, format) {
 }
 
 // 防抖
-export function debounce (fn, delay) {
+export function debounce (fn, delay = 300) {
   var timeout = null// 定时器
   var times = 0// 次数统计
   return function (e) {
     clearTimeout(timeout)
     times++
     timeout = setTimeout(() => {
-      console.log(`执行防抖函数,节省次数：${times}`)
+      console.log(`xl-ui防抖函数生效,节省次数：${times}`)
       fn.apply(this, arguments)
     }, delay)
   }
@@ -73,4 +73,19 @@ export function throttle (fn, delay) {
   }
 }
 
-export default { camelize, isObject, trim, isArray, isString, getWindowSize, getDate, debounce, throttle }
+export const isServe = typeof window === 'undefined'
+
+export const EVENT_CODE = {
+  tab: 'Tab',
+  enter: 'Enter',
+  space: 'Space',
+  left: 'ArrowLeft', // 37
+  up: 'ArrowUp', // 38
+  right: 'ArrowRight', // 39
+  down: 'ArrowDown', // 40
+  esc: 'Escape',
+  delete: 'Delete',
+  backspace: 'Backspace'
+}
+
+export default { camelize, isObject, trim, isArray, isString, getWindowSize, getDate, debounce, throttle, isServe, EVENT_CODE }

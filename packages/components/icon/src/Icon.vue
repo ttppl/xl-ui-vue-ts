@@ -40,6 +40,10 @@ export default {
       type: String,
       default: ''
     },
+    cursor: {
+      type: String,
+      default: 'default'
+    },
 
     size: {
       type: Number,
@@ -66,6 +70,7 @@ export default {
         style.color = this.color
       }
       style.fontSize = `${this.size}px`
+      style.cursor = this.cursor
       return style
     }
   },

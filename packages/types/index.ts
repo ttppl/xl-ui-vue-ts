@@ -36,11 +36,11 @@ export const COLORS = {
 }
 export const TYPES = ['primary', 'warn', 'notice', 'error', 'success', 'ini']
 
-export function themeType (type, attr, lightStyle) {
+export function themeType (type:string, attr:Nullable<string>, lightStyle:Nullable<boolean>):string {
   return 'xl-color' + (attr ? '-' + attr : '') + '-' + type + (lightStyle ? '-light' : '')
 }
 
-export function InputThemeType (type, light) {
+export function InputThemeType (type:string, light:boolean):Nullable<string[]> {
   if (!TYPES.includes(type)) {
     return null
   }
@@ -65,7 +65,7 @@ export function InputThemeType (type, light) {
       compType[key] += '-light'
     })
   }
-  return [themeType(compType.color), themeType(compType.bd, 'bd'), themeType(compType.bg, 'bg'), themeType(compType.hover, 'bd-hover'), themeType(compType.focus, 'bd-focus')]
+  return [themeType(compType.color, null, null), themeType(compType.bd, 'bd', null), themeType(compType.bg, 'bg', null), themeType(compType.hover, 'bd-hover', null), themeType(compType.focus, 'bd-focus', null)]
 }
 
 export default { TYPES, COLORS, themeType, InputThemeType }

@@ -11,7 +11,7 @@ export default {
     }
   },
   computed: {
-    widthC () {
+    widthC ():string {
       if (isNaN(this.width)) {
         return this.width
       }
@@ -26,7 +26,7 @@ export default {
       }
     },
 
-    heightC () {
+    heightC ():string {
       if (isNaN(this.height)) {
         return this.height
       }

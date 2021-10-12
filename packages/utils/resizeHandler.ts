@@ -2,7 +2,7 @@ import dom from './dom'
 const barWidth = 5
 
 const resize = function (e, direction, element) {
-  const size = dom.getElementSize(element)
+  const size:any = dom.getElementSize(element)
   const startX = e.pageX
   const startY = e.pageY
   const left = element.offsetLeft

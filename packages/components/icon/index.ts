@@ -1,4 +1,4 @@
-import Icon from './src/Icon'
+import Icon from './src/Icon.vue'
 
 Icon.install = (App) => {
   App.component(Icon.name, Icon)

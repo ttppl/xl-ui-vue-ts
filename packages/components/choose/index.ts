@@ -1,4 +1,4 @@
-import Choose from './src/Choose'
+import Choose from './src/Choose.vue'
 
 Choose.install = (App) => {
   App.component(Choose.name, Choose)

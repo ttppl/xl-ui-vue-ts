@@ -1,4 +1,4 @@
-import ChooseGroup from '../choose/src/ChooseGroup'
+import ChooseGroup from '../choose/src/ChooseGroup.vue'
 
 ChooseGroup.install = (App) => {
   App.component(ChooseGroup.name, ChooseGroup)
