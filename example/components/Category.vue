@@ -1,6 +1,7 @@
 <template>
   <div class="Category">
     <h1>目录</h1>
+    <AttrTable :attrs="attrs"></AttrTable>
     <h2>基本使用</h2>
     <example-form>
       <h3>默认style</h3>
@@ -92,21 +93,73 @@
 </template>
 
 <script type="text/ecmascript-6">
-import ExampleForm from './ExampleForm.vue'
+import { ref, reactive } from 'vue'
+import AttrTable from '~/components/AttrTable.vue'
 export default {
   name: 'Category',
 
   nameSpace: 'Category',
 
   components: {
+    AttrTable
   },
 
   props: {
-    ExampleForm
   },
 
-  data () {
+  setup () {
+    const attrs = reactive([{
+      attrName: 'title',
+      attrDesc: '标题',
+      type: 'String',
+      accepted: '',
+      default: ''
+    },
+    {
+      attrName: 'category-style',
+      attrDesc: '目录自定义style',
+      type: 'Object',
+      accepted: '',
+      default: ''
+    },
+    {
+      attrName: 'left',
+      attrDesc: '目录位置居左',
+      type: 'Boolean',
+      accepted: 'true/false',
+      default: 'false'
+    },
+    {
+      attrName: 'category-class',
+      attrDesc: '目录自定义class(必须为全局class)',
+      type: 'Object',
+      accepted: '',
+      default: ''
+    },
+    {
+      attrName: 'category-width',
+      attrDesc: '目录宽度',
+      type: 'Number/String',
+      accepted: '',
+      default: '200'
+    },
+    {
+      attrName: 'fixed',
+      attrDesc: '固定目录位置',
+      type: 'Boolean',
+      accepted: 'true/false',
+      default: 'true'
+    },
+    {
+      attrName: 'showOrder',
+      attrDesc: '目录编号',
+      type: 'Boolean',
+      accepted: 'true/false',
+      default: 'true'
+    }
+    ])
     return {
+      attrs
     }
   },
 

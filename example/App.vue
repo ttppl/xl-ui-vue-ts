@@ -25,7 +25,7 @@ export default {
     // message('sss')
     const menus = reactive([
       {
-        label: 'guide  摘要',
+        label: 'guide  指引',
         to: 'guide'
       },
       {

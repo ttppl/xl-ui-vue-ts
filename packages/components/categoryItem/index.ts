@@ -1,4 +1,4 @@
-import CategoryItem from './src/CategoryItemItem.vue'
+import CategoryItem from './src/CategoryItem.vue'
 
 CategoryItem.install = (App) => {
   App.component(CategoryItem.name, CategoryItem)

@@ -43,12 +43,12 @@ export default defineComponent({
     showOrder: {
       type: Boolean,
       default: true
-    },
-
-    container: {
-      type: Object,
-      default: () => undefined
     }
+
+    // container: {
+    //   type: Object,
+    //   default: () => undefined
+    // }
   },
 
   setup (props, ctx) {

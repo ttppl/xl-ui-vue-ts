@@ -92,7 +92,7 @@ export default {
     show () {
       if (this.$refs.tootip.scrollWidth > this.$refs.tootip.clientWidth) {
         this.overFlow = true
-      } else if (this.$refs.tootip.children) {
+      } else if (this.$refs.tootip.children?.length > 0) {
         this.$refs.tootip.children.forEach(c => {
           if (c.scrollWidth > this.$refs.tootip.clientWidth) {
             this.overFlow = true

@@ -18,7 +18,8 @@ export default defineComponent({
     return {
       XlTable: computed(() => {
         return {
-          columns: this.columns
+          columns: this.columns,
+          defaultColumn: this.defaultColumn
         }
       })
     }
@@ -53,6 +54,11 @@ export default defineComponent({
     },
 
     showArrow: Boolean,
+    distinguishRow: Boolean, // 隔行背景区分
+    keepInline: {
+      type: Boolean,
+      default: true
+    },
 
     border: {
       type: Boolean,
@@ -86,6 +92,14 @@ export default defineComponent({
       default: () => {
         return null
       }
+    },
+    textAlign: {
+      type: String,
+      default: 'center'
+    },
+    defaultColumn: {
+      type: [Boolean, Function],
+      default: false
     }
 
   },
@@ -113,6 +127,26 @@ export default defineComponent({
         classes.push('xl-table-border')
       }
       return classes
+    },
+    commonstyle () {
+      const style = {}
+      if (this.textAlign === 'left') {
+        style.textAlign = 'left'
+        style.justifyContent = 'flex-start'
+      }
+      if (this.textAlign === 'right') {
+        style.textAlign = 'right'
+        style.justifyContent = 'flex-end'
+      }
+      return style
+    },
+    headerStyle () {
+      const style = { ...this.commonstyle }
+      return style
+    },
+    contentStyle () {
+      const style = { ...this.commonstyle }
+      return style
     }
   },
 
@@ -121,14 +155,14 @@ export default defineComponent({
       if (Array.isArray(width)) {
         return width.reduce((pre, cur) => pre + cur)
       }
-      return { width: width !== 0 ? `${width}px` : 'auto', height: `${this.columnHeight}px` }
+      return { width: width !== 0 ? `${width}px` : 'auto', minHeight: `${this.columnHeight}px` }
     },
 
     getHeader () {
       const headChildren = []
       const renderHearder = (c, colspan) => {
         headChildren.push(h('td', { class: [...this.headerClass], colspan: colspan, style: Object.assign(this.calcWidthStyle(c.width), this.popHeaderStyle) },
-          h('div', { class: 'xl-table-head-column xl-table-column-flex-center', style: this.calcWidthStyle(c.width) }, c.header ? c.header(h) : (c.label || c.columnName))))
+          h('div', { class: 'xl-table-head-column xl-table-column-flex-center', style: Object.assign(this.calcWidthStyle(c.width), this.headerStyle) }, c.header ? c.header(h) : (c.label || c.columnName))))
       }
       this.columns.forEach(c => {
         if (c.render instanceof Array) {
@@ -149,15 +183,15 @@ export default defineComponent({
         const trChildren = []
         const renderDataColumn = (c, width, slot, render) => {
           trChildren.push(h('td', { class: [...this.dataClass], style: Object.assign(this.calcWidthStyle(width), this.popDataStyle), onClick: (e) => { this.click(d, e) } },
-            h('div', { class: ['xl-table-column-flex-center xl-table-data-column'], style: this.calcWidthStyle(width) },
-              !slot ? h(Tooltip, { width: width }, render(h, d, index)) : h('div', null, render(h, d, index)))))
+            h('div', { class: ['xl-table-column-flex-center xl-table-data-column'], style: Object.assign(this.calcWidthStyle(width), this.contentStyle) },
+              !slot ? h(this.keepInline ? Tooltip : 'div', { width: width }, render(h, d, index)) : h('div', null, render(h, d, index)))))
         }
         this.columns.forEach(c => {
           if (typeof c.render === 'function') {
             renderDataColumn(c, c.width, c.slot, c.render)
           } else if (c.render instanceof Array) {
             c.render.forEach((r, index) => {
-              renderDataColumn(c, c.width[index], c.slot[index], r)
+              renderDataColumn(c, c.width[index], c.slot?.[index], r)
             })
           }
         })
@@ -165,7 +199,7 @@ export default defineComponent({
           trChildren.push(h('td', { class: ['xl-table-arrow'], width: '30px', onClick: () => { this.expand(d) } },
             h(Icon, { class: ['xl-table-arrow-init', { 'xl-table-arrow-down': d.expand }], icon: 'arrowDown', size: 20, type: 'notice' })))
         }
-        children.push(h('tr', {}, trChildren))
+        children.push(h('tr', { class: [this.distinguishRow && index % 2 !== 0 ? themeType(this.type, 'bg', true) : ''] }, trChildren))
         if (this.$slots.expand) {
           d.$index = index
           children.push(withDirectives(h('tr', {}, h('td', { class: [...this.dataClass, 'xl-table-expand xl-table-data-column'], style: this.popDataStyle, colspan: this.getExpandCols() },
@@ -240,7 +274,7 @@ export default defineComponent({
       border:1px solid #DBDBDB;
     }
     .xl-table-head-column{
-      min-height: 60px;
+      min-height: 40px;
       font-size: 18px;
       font-family: Arial;
       font-weight: bold;
@@ -253,9 +287,10 @@ export default defineComponent({
       font-weight: bold;
       vertical-align: middle;
       text-align: center;
-      min-height: 60px;
+      min-height: 30px;
       padding:5px 8px;
       text-overflow:ellipsis;
+      white-space: pre-wrap;
     }
     .xl-table-column-flex-center{
       display: flex;

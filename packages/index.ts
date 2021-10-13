@@ -2,7 +2,7 @@
 import './styles/transition.less'
 import './styles/themBase.less'
 const components = []
-const componentsModules = require.context('./components/', true, /[A-Za-z0-9-_,\s]+\.js$/i)
+const componentsModules = require.context('./components/', true, /[A-Za-z0-9-_,\s]+\.ts$/i)
 componentsModules.keys().forEach(k => {
   components.push(componentsModules(k).default)
 })

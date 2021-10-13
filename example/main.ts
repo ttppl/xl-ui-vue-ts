@@ -4,6 +4,7 @@ import router from './router'
 import hljs from 'highlight.min.js'
 import '@/styles'
 import ExampleForm from './components/ExampleForm.vue'
+import AttrTable from './components/AttrTable.vue'
 // import xlui from 'xl-ui-vue3'
 
 const app = createApp(App)
@@ -21,6 +22,7 @@ locales.keys().forEach(key => {
   }
 })
 app.component('ExampleForm', ExampleForm)
+app.component('AttrTable', AttrTable)
 
 app.directive('highlight', function (el) {
   hljs.configure({ useBR: true })
