@@ -49,6 +49,15 @@ export default {
             to: 'category'
           }
         ]
+      },
+      {
+        label: 'data-view 数据展示',
+        subs: [
+          {
+            label: 'tag  标签',
+            to: 'tag'
+          }
+        ]
       }])
     return {
       menus

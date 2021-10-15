@@ -16,6 +16,10 @@ export const isString = function (obj) {
   return Object.prototype.toString.call(obj) === '[object String]'
 }
 
+export const isNum = function (num) {
+  return /^-?\d*\.?\d*$/.test(num)
+}
+
 export const trim = function (s) {
   return (s || '').replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '')
 }
@@ -88,4 +92,4 @@ export const EVENT_CODE = {
   backspace: 'Backspace'
 }
 
-export default { camelize, isObject, trim, isArray, isString, getWindowSize, getDate, debounce, throttle, isServe, EVENT_CODE }
+export default { camelize, isObject, trim, isArray, isString, isNum, getWindowSize, getDate, debounce, throttle, isServe, EVENT_CODE }

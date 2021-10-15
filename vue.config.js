@@ -193,7 +193,7 @@ module.exports = {
 
   // 打包目录
   // outputDir: process.env.OUTDIR,
-  outputDir: 'D:/nginx-1.20.1/html/sp',
+  outputDir: 'dist',
 
   // 放置生成的静态资源
   assetsDir: 'assets',

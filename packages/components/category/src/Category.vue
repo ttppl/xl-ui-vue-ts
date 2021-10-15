@@ -179,6 +179,7 @@ export default defineComponent({
     font-size: 18px;
   }
   .categorys{
+    box-sizing: border-box;
     height:0;
     flex-shrink:0;
     // line-height: 25px;

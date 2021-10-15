@@ -40,4 +40,8 @@ app.config.unwrapInjectedRef = true
 app.config.warnHandler = function () {
   // `trace` 是组件的继承关系追踪
 }
+
+// 全局变量
+app.config.globalProperties.logo = require('~/assets/logo.png')
+
 app.mount('#app')
