@@ -1,40 +1,55 @@
 <template>
-  <div ref="scroll" class="XlScroll" :style="style">
-    <div ref="view" class="xl-scroll-content" :style="style" @scroll="handleScroll">
+  <div ref="scrollRef" class="XlScroll" :style="style">
+    <div ref="viewRef" :style="viewStyle" class="scroll-view" @scroll="handleScroll">
       <slot />
     </div>
-    <div v-show="scroll&&showScroll" class="xl-pointer xl-scroll-bar" @mousedown="clickTrackHandler" @click.stop>
-      <div ref="bar" class="xl-bar xl-pointer" :class="barClass" :style="barStyle" />
+    <div v-if="showScrollY" class="xl-scroll-bar-y" @mousedown="clickTrackHandler" @click.stop>
+      <div class="xl-bar-y xl-pointer" :class="barClass" :style="barStyle" />
+    </div>
+    <div v-if="showScrollX" class="xl-pointer xl-scroll-bar-x" @mousedown="clickTrackHandler" @click.stop>
+      <div class="xl-bar-x xl-pointer" :class="barClass" :style="barStyle" />
     </div>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
-import whCompute from '../../../mixins/whCompute'
+import { ref, reactive, computed, onMounted, nextTick, onUnmounted, onBeforeUpdate } from 'vue'
+import size, { computeSize } from '@/mixins/size'
 import { themeType } from '../../../types'
-const on = function (element, event, handler, useCapture = false) {
-  if (element && event && handler) {
-    element.addEventListener(event, handler, useCapture)
-  }
-}
-const off = function (element, event, handler, useCapture = false) {
-  if (element && event && handler) {
-    element.removeEventListener(event, handler, useCapture)
-  }
-}
+import { on, off } from '@/utils/dom'
 export default {
   name: 'XlScroll',
+
+  nameSpace: 'XlScroll',
 
   components: {
   },
 
-  mixins: [whCompute],
-
   props: {
 
     showScroll: {
-      type: Boolean,
-      default: true
+      type: String,
+      default: 'both'
+    },
+
+    width: {
+      type: [String, Number],
+      default: 0
+    },
+
+    height: {
+      type: [String, Number],
+      default: 0
+    },
+
+    maxWidth: {
+      type: [String, Number],
+      default: 0
+    },
+
+    maxHeight: {
+      type: [String, Number],
+      default: 0
     },
 
     barWidth: {
@@ -56,150 +71,182 @@ export default {
     }
   },
 
-  data () {
-    return {
-      scroll: false, // 是否需要滚动
-      scrollHeight: 0, // 内容高度
-      viewHeight: 0, // 可见高度
-      barTranslateY: 0, // 滚动条位置
-      barChecked: false// 滚动条是否被选中
+  setup (props, ctx) {
+    const scrollRef = ref(null)
+    const viewRef = ref(null)
+    const scrollSize = reactive({})// 内容大小（可见高度，内容高度，可见宽度，内容宽度）
+    const getScrollSize = () => {
+      scrollSize.containerHeight = scrollRef.value.clientHeight
+      scrollSize.contentHeight = viewRef.value.scrollHeight
+      scrollSize.containerWidth = scrollRef.value.clientWidth
+      scrollSize.contentWidth = viewRef.value.scrollWidth
+      scrollSize.contentViewHeight = viewRef.value.clientHeight
+      scrollSize.contentViewWidth = viewRef.value.clientWidth
     }
-  },
-
-  computed: {
-
-    style () {
-      const style = { ...this.popStyle }
-      if (this.width !== 0) {
-        style.width = this.widthC
+    onMounted(() => {
+      nextTick().then(() => {
+        getScrollSize()
+        on(viewRef.value, 'resize', getScrollSize)
+      })
+    })
+    // onBeforeUpdate(() => {
+    //   if (props.width === 0 || props.height === 0) {
+    //     console.log(111)
+    //     getScrollSize()
+    //   }
+    // })
+    const showScrollY = computed(() => { // 显示纵向滚动条
+      return scrollSize.contentHeight > scrollSize.containerHeight && (props.showScroll === 'both' || props.showScroll.toLowerCase() === 'y')
+    })
+    const showScrollX = computed(() => { // 显示横向滚动条
+      return scrollSize.contentWidth > scrollSize.containerWidth && (props.showScroll === 'both' || props.showScroll.toLowerCase() === 'x')
+    })
+    const style = computed(() => { // container style
+      const style = { }
+      const { widthC, heightC } = size(props)
+      if (props.width !== 0) {
+        style.width = widthC.value
       }
-      if (this.height !== 0) {
-        style.height = this.heightC
+      if (props.height !== 0) {
+        style.height = heightC.value
+      }
+      if (showScrollY.value) {
+        style.paddingRight = `${props.barWidth * 1 + 2}px`
+      }
+      if (showScrollX.value) {
+        style.paddingRBottom = `${props.barWidth * 1 + 2}px`
       }
       return style
-    },
+    })
 
-    barClass () {
-      const type = themeType(this.type, 'bg', this.lightStyle)
-      const checked = { 'xl-bar-checked': this.barChecked }
+    const viewStyle = computed(() => {
+      const style = { ...props.popStyle }
+      if (props.maxWidth !== 0) {
+        style.maxWidth = computeSize(props.maxWidth)
+      }
+      if (props.maxHeight !== 0) {
+        style.maxHeight = computeSize(props.maxHeight)
+      }
+      return style
+    })
+
+    // bar相关
+    const barClass = computed(() => {
+      const type = themeType(props.type, 'bg', props.lightStyle)
+      const checked = { 'xl-bar-checked': props.barChecked }
       return [type, checked]
-    },
-
-    barStyle () {
+    })
+    // showScrollY时用
+    const barHeight = computed(() => { return Math.pow(scrollSize.containerHeight, 2) / scrollSize.contentHeight })
+    // showScrollX时用
+    const barWidth = computed(() => { return Math.pow(scrollSize.containerWidth, 2) / scrollSize.contentWidth })
+    const barStyle = computed(() => {
       const style = {}
-      style.width = `${this.barWidth}px`
-      style.transform = `translateY(${this.barTranslateY}%)`
-      style.height = `${this.scrollHeight / this.viewHeight * this.scrollHeight}px`
+      if (showScrollY.value) {
+        style.width = `${props.barWidth}px`
+        style.height = `${barHeight.value}px`
+        style.transform = `translateY(${barTranslate.y}px)`
+      }
+      if (showScrollX.value) {
+        style.height = `${props.barWidth}px`
+        style.width = `${barWidth.value}px`
+        style.transform = `translateY(${barTranslate.x}px)`
+      }
       return style
+    })
+    const barTranslate = reactive({ x: 0, y: 0 }) // 滚动条位置
+
+    const handleScroll = () => { // 滚动事件
+      if (showScrollY.value) {
+        barTranslate.y = viewRef.value.scrollTop * barHeight.value / scrollSize.containerHeight
+      }
     }
-  },
 
-  created () {
-  },
-
-  mounted () {
-    this.$nextTick().then(() => {
-      this.scrollHeight = this.$refs.scroll.clientHeight
-      this.viewHeight = this.$refs.view.scrollHeight
-      this.scroll = this.viewHeight >= this.scrollHeight
-    })
-  },
-
-  updated () {
-    this.$nextTick().then(() => {
-      this.scrollHeight = this.$refs.scroll.clientHeight
-      this.viewHeight = this.$refs.view.scrollHeight
-      this.scroll = this.viewHeight > this.scrollHeight
-    })
-  },
-
-  unmounted () {
-    off(document, 'mouseup', this.mouseUp)
-  },
-
-  methods: {
-    handleScroll () {
-      if (this.scroll && this.showScroll) {
-        this.barTranslateY = this.$refs.view.scrollTop / this.scrollHeight * 100
-      }
-    },
-
-    clickTrackHandler (e) {
-      if (this.scroll && this.showScroll) {
-        e.stopPropagation()
-        // this.caculatePosition(e)
-        on(document, 'mousemove', this.moseMove)
-        on(document, 'mouseup', this.mouseUp)
-      }
-    },
-
-    moseMove (e) {
+    const clickTrackHandler = (e) => {
       e.stopPropagation()
-      this.barChecked = true
-      this.caculatePosition(e)
-    },
+      caculatePosition(e)
+      if (showScrollY.value) {
+        on(document, 'mousemove', moseMove)
+        on(document, 'mouseup', mouseUp)
+      }
+    }
 
-    mouseUp (e) {
-      this.barChecked = false
+    const moseMove = (e) => {
       e.stopPropagation()
-      this.caculatePosition(e)
-      off(document, 'mousemove', this.moseMove)
-    },
+      caculatePosition(e)
+    }
 
-    caculatePosition (e) {
+    const mouseUp = (e) => {
+      e.stopPropagation()
+      off(document, 'mousemove', moseMove)
+    }
+
+    const caculatePosition = (e) => {
       e.preventDefault()
-      const barTop = this.$refs.scroll.getBoundingClientRect().top
-      const barBottom = this.$refs.scroll.getBoundingClientRect().bottom
-      const barHeight = (this.scrollHeight / this.viewHeight * this.scrollHeight)
-      const barMiddle = barTop + barHeight / 2
-      const VIEW = this.$refs.view
-      if (e.clientY - barHeight / 2 <= barTop) {
-        this.barTranslateY = 0
-        VIEW.scrollTop = 0
-      } else if (e.clientY + barHeight / 2 >= barBottom) {
-        this.barTranslateY = ((this.scrollHeight - barHeight) / barHeight) * 100
-        VIEW.scrollTop = this.viewHeight - this.scrollHeight
-      } else {
-        this.barTranslateY = (e.clientY - barMiddle) / barHeight * 100
-        VIEW.scrollTop = (e.clientY - barMiddle) / this.scrollHeight * this.viewHeight
+      const containerTop = scrollRef.value.getBoundingClientRect().top
+      const containerBottom = scrollRef.value.getBoundingClientRect().bottom
+      const VIEW = viewRef.value
+      if (showScrollY.value) {
+        if (e.clientY <= (containerTop + barHeight.value / 2)) { // 移动到超出上边界
+          // barTranslate.y = 0
+          VIEW.scrollTop = 0
+        } else if (e.clientY >= (containerBottom - barHeight.value / 2)) { // 移动到超出下边界
+          // barTranslate.y = scrollSize.containerHeight - barHeight.value
+          VIEW.scrollTop = scrollSize.contentHeight - scrollSize.contentViewHeight
+        } else {
+          const barMiddle = containerTop + barHeight.value / 2
+          // barTranslate.y = e.clientY - barMiddle
+          VIEW.scrollTop = (e.clientY - barMiddle) / scrollSize.containerHeight * scrollSize.contentHeight
+        }
       }
+    }
+
+    onUnmounted(() => {
+      off(document, 'mouseup', mouseUp)
+    })
+    return {
+      style,
+      viewStyle,
+      scrollRef,
+      viewRef,
+      showScrollY,
+      showScrollX,
+      barClass,
+      barStyle,
+      handleScroll,
+      clickTrackHandler
     }
   }
+
 }
 </script>
 
-<style lang="less">
+<style scoped lang="less">
 .XlScroll{
   overflow: hidden;
-  height: 100%;
-  -webkit-display:flex;
-  -ms-display:flex;
-  display:flex;
-  >.xl-scroll-content::-webkit-scrollbar {
-    display: none;
+  position: relative;
+  box-sizing: border-box;
+  >.scroll-view{
+    height:100%;
+    width:100%;
+    overflow: auto;
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
-  >.xl-scroll-content{
-    flex-grow: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    word-break:break-all
-  }
-  >.xl-scroll-bar{
+  >.xl-scroll-bar-y{
     box-sizing: border-box;
-    padding-left: 5px;
+    position: absolute;
+    right:0;
+    top:0;
     height: 100%;
-    >.xl-bar{
-      // background-color: #909399;
+    cursor: pointer;
+    >.xl-bar-y{
       border-radius: 6px;
     }
-    >.xl-bar:hover,.xl-bar-checked{
+    >.xl-bar-y:hover,.xl-bar-checked{
       opacity: 0.6;
     }
-  }
-  .xl-pointer{
-    cursor: pointer;
   }
 }
 </style>

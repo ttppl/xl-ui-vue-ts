@@ -1,12 +1,12 @@
 <template>
   <div class="Category">
     <h1>目录</h1>
-    <AttrTable :attrs="attrs"></AttrTable>
+    <AttrTable :attrs="attrs" />
     <h2>基本使用</h2>
     <example-form>
       <h3>默认style</h3>
       <!-- <XlCategory title="目录" :category-style="{top:'300px'}" :show-order="false" :fixed="false"> -->
-      <XlCategory title="目录" :category-style="{width:'250px'}" :show-order="false" :fixed="false">
+      <XlCategory title="目录" never-hide :category-style="{width:'250px'}" :show-order="false" :fixed="false">
         <XlCategoryItem class="content" title="将进酒">
           <p>《将进酒》</p>
           <p>作者：李白</p>
@@ -145,7 +145,7 @@ export default {
     },
     {
       attrName: 'fixed',
-      attrDesc: '固定目录位置',
+      attrDesc: '固定目录位置(需指定width)',
       type: 'Boolean',
       accepted: 'true/false',
       default: 'true'

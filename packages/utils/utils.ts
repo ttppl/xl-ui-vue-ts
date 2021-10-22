@@ -24,13 +24,6 @@ export const trim = function (s) {
   return (s || '').replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '')
 }
 
-export const getWindowSize = function () {
-  const size:any = {}
-  size.width = window.innerWidth
-  size.height = window.innerHeight
-  return size
-}
-
 export function getDate (dateString, format) {
   if (!dateString) {
     return new Date()
@@ -92,4 +85,4 @@ export const EVENT_CODE = {
   backspace: 'Backspace'
 }
 
-export default { camelize, isObject, trim, isArray, isString, isNum, getWindowSize, getDate, debounce, throttle, isServe, EVENT_CODE }
+export default { camelize, isObject, trim, isArray, isString, isNum, getDate, debounce, throttle, isServe, EVENT_CODE }

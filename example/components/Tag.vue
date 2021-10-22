@@ -218,6 +218,7 @@ export default {
   .tags{
     /deep/.XlTag{
       margin-right: 70px;
+      margin-top: 20px;
     }
     .logo{
       border-radius: 50%;

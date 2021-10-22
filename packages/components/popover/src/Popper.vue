@@ -1,13 +1,17 @@
 <script type="text/ecmascript-6">
-import { h, Teleport, Transition, vShow, withDirectives, withCtx } from 'vue'
-import zIndexManager from '../../../utils/zIndexManager'
-// import {getElementSize} from '../../../utils/dom'
-import Scroll from '../../scroll/src/Scroll'
-import whCompute from '../../../mixins/whCompute'
-const GAP = 10
+import { h, Teleport, Transition, vShow, withDirectives, withCtx, ref, inject, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
+import zIndexManager from '@/utils/zIndexManager'
+import Scroll from '@/components/scroll/src/Scroll'
+import { getElementSize, getScrollWidth, on, off, hasScrollbar, getOffsetTop } from '@/utils/dom'
+import { POSITION, SCALE_TRANSITION } from '@/types/consistant'
+import size from '@/mixins/size'
+// 常量
+
+const GAP = 10// popper距离边缘的距离
 const getMax = function (value) { // 边缘距离判断函数，最小为10
   return Math.max(value, GAP)
 }
+// 获取中位数
 // const getMiddle = function(...arr){
 //   arr.sort((a,b)=>a>b?1:a<b?-1:0);
 //   if (arr.length % 2 == 0) {
@@ -16,7 +20,7 @@ const getMax = function (value) { // 边缘距离判断函数，最小为10
 //     return arr[Math.floor(arr.length / 2)];
 //   }
 // }
-// 直接固定三个数，减少判断次数
+// 获取中位数，直接固定三个数，减少判断次数
 const getMiddle = function (v1, v2, v3) {
   const arr = [v1, v2, v3]
   arr.sort((a, b) => a > b ? 1 : a < b ? -1 : 0)
@@ -31,8 +35,6 @@ export default {
   components: {
   },
 
-  mixins: [whCompute],
-  inject: ['XlPopperTrigger'],
   props: {
     modelValue: Boolean,
 
@@ -81,411 +83,359 @@ export default {
       default: 0
     },
 
-    offsetParent: {
+    offsetParent: { // 距离触发元素的偏移量
       type: [Number, String],
       default: 0
     },
 
-    minWidthFollowParent: Boolean// select时使用
+    minWidthFollowParent: Boolean// select时使用，最小宽度为触发元素宽度
   },
 
-  emits: ['update:modelValue', 'close', 'mouseover', 'mouseout'],
+  emits: ['update:modelValue', 'close', 'mouseenter', 'mouseleave'],
 
-  data () {
-    return {
-      zIndex: 100,
-      parentwidth: '',
-      scrollWidth: 0,
-      windowWidth: window.innerWidth,
-      windowHeight: window.innerHeight,
-      ownWidth: 0,
-      popperPosition: {
+  setup (props, ctx) {
+    const parentAttr = reactive({ // 触发元素的一些属性
+      width: 0
+    })
+    const windows = reactive({ // 窗口的一些属性
+      scrollWidth: hasScrollbar() ? getScrollWidth() : 0, // 滚动条宽度
+      width: 0, // 实际宽高
+      height: 0,
+      viewWidth: 0, // 可见宽高
+      viewHeight: 0
+    })
+    const popper = ref(null)
+    const popperAttr = reactive({ // popper自身的一些属性
+      width: 0, // 原始宽高
+      height: 0,
+      resetedWidth: 0, // 重置宽高时赋值
+      resetedHeight: 0,
+      transition: 'tst-faded', // 过渡效果
+      finalPosition: props.position,
+      position: {
         left: 0,
         right: 0,
         top: 0,
         bottom: 0
-      },
+      }
+    })
 
-      arrowAttr: {
-        position: {
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: 0
-        },
+    const arrowAttr = reactive({ // 箭头的一些属性
+      size: 10, // border-width,
+      color: 'white',
+      position: {
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0
+      }
+    })
 
-        arrowSize: 10, // border-width
-        color: 'white'
-      },
-
-      finalPosition: ''
-    }
-  },
-
-  computed: {
-    model: {
+    const model = computed({
       get () {
-        return this.modelValue
+        return props.modelValue
       },
 
       set (nv) {
         this.$emit('update:modelValue', nv)
       }
-    },
+    })
 
-    xlPopperTrigger () {
-      return this.XlPopperTrigger.value || this.XlPopperTrigger
-    },
+    watch(() => props.modelValue, (nv) => { // 监听弹框
+      calcPosition('show')
+    })
 
-    widthC () {
-      if (isNaN(this.width)) {
-        const calcWidth = this.windowWidth * this.width.toString().trim().slice(0, -1) / 100
-        return this.width.toString().endsWith('%') ? `${this.alwaysInView ? Math.min(calcWidth, this.windowWidth - this.scrollWidth) : calcWidth}px` : this.width.toString()
-      }
-      if (this.width === 0) {
-        return 'auto'
-      } else if (this.width > 1) {
-        return `${this.alwaysInView ? Math.min(this.width, this.windowWidth - this.scrollWidth) : this.width}px`
-      } else if (this.width < 1) {
-        return `${this.windowWidth * this.width}px`
-      } else {
-        return `${this.windowWidth - this.scrollWidth}px`
-      }
-    },
-
-    heightC () {
-      if (isNaN(this.height)) {
-        const calcHeight = this.windowHeight * this.height.toString().trim().slice(0, -1) / 100
-        return this.height.toString().endsWith('%') ? `${this.alwaysInView ? Math.min(calcHeight, this.windowHeight - this.scrollWidth) : calcHeight}px` : this.height.toString()
-      }
-      if (this.height === 0) {
-        return 'auto'
-      } else if (this.height > 1) {
-        return `${this.alwaysInView ? Math.min(this.height, this.windowHeight - this.scrollWidth) : this.height}px`
-      } else if (this.height < 1) {
-        return `${this.windowHeight * this.height}px`
-      } else {
-        return `${this.windowHeight - this.scrollWidth}px`
-      }
-    },
-
-    style () {
-      const style = {}
-      style.zIndex = this.zIndex
-      if (this.popperPosition.left) {
-        style.left = `${this.popperPosition.left}px`
-      }
-      if (this.popperPosition.top) {
-        style.top = `${this.popperPosition.top}px`
-      }
-      // style.transform = `translate(${this.popperPosition.left||0}px,${this.popperPosition.top||0}px)`
-      return style
-    },
-
-    contentStyle () {
-      const style = { ...this.popStyle }
-      style.zIndex = this.zIndex
-      if (this.width !== 0) {
-        style.width = this.widthC
-      } else if (this.ownWidth >= (this.windowWidth - this.scrollWidth)) {
-        style.width = `${this.windowWidth - this.scrollWidth}px`
-      }
-      if (this.minWidthFollowParent) {
-        style.minWidth = `${this.parentwidth}px`
-      }
-
-      if (this.height !== 0) {
-        style.height = this.heightC
-      } else if (this.maxHeight !== 0 && this.$refs.popper?.getBoundingClientRect().height >= this.maxHeight) {
-        style.height = `${this.maxHeight}px`
-      }
-      return style
-    },
-
-    arrowStyle () {
-      const style = {}
-      style.zIndex = this.zIndex - 1
-      if (this.arrowAttr.position.left) {
-        style.left = `${this.arrowAttr.position.left}px`
-      }
-      if (this.arrowAttr.position.right) {
-        style.right = `${this.arrowAttr.position.right}px`
-      }
-      if (this.arrowAttr.position.top) {
-        style.top = `${this.arrowAttr.position.top}px`
-      }
-      if (this.arrowAttr.position.bottom) {
-        style.bottom = `${this.arrowAttr.position.bottom}px`
-      }
-      style.backgroundColor = this.arrowAttr.color
-      style.width = `${this.arrowAttr.arrowSize}px`
-      style.height = `${this.arrowAttr.arrowSize}px`
-      return style
-    }
-  },
-
-  watch: {
-    modelValue (nv) {
-      if (nv) { this.calcPosition() }
-    }
-  },
-
-  created () {
-    this.zIndex = zIndexManager.nextIndex()
-    this.scrollWidth = this.getScrollWidth()
-  },
-
-  updated () {
-    // this.calcPosition()
-  },
-
-  mounted () {
-    this.calcPosition()
-    if (!this.isFixed(this.$parent.$refs.popover)) { // 固定位置不监听滚动事件
-      document.addEventListener('scroll', this.calcPosition)
-    }
-    window.addEventListener('resize', this.calcPosition)
-  },
-
-  unmounted () {
-    if (!this.isFixed(this.$parent.$refs.popover)) {
-      document.removeEventListener('scroll', this.calcPosition)
-    }
-    window.removeEventListener('resize', this.calcPosition)
-  },
-
-  methods: {
-    calcPosition () {
-      if (!this.modelValue) {
+    const XlPopperTrigger = inject('XlPopperTrigger')
+    const xlPopperTrigger = computed(() => { // 兼容传递普通对象和compute对象
+      return XlPopperTrigger.value || XlPopperTrigger
+    })
+    // 计算popper位置
+    const calcPosition = (triggerMethod) => {
+      if (!model.value) { // 元素未显示，不计算位置
         return
       }
-      const parent = this.xlPopperTrigger.dom()
+      const parent = xlPopperTrigger.value.dom()// 触发元素的dom
       if (parent) {
-        this.finalPosition = this.position
-        this.windowWidth = window.innerWidth
-        this.windowHeight = window.innerHeight
-        const parentOffetLeft = parent.getBoundingClientRect().left
-        const parentOffsetRight = parent.getBoundingClientRect().right
-        const parentOffsetTop = parent.getBoundingClientRect().top
-        const parentOffsetBottom = parent.getBoundingClientRect().bottom
-        const parentwidth = parent.getBoundingClientRect().width
-        this.parentwidth = parentwidth
-        const parentHeight = parent.getBoundingClientRect().height
+        // 初始化窗口大小
+        windows.scrollWidth = hasScrollbar() ? getScrollWidth() : 0
+        windows.width = window.innerWidth * 1
+        windows.height = window.innerHeight * 1
+        windows.viewWidth = window.innerWidth - windows.scrollWidth
+        windows.viewHeight = window.innerHeight - windows.scrollWidth
+        // 触发元素的位置和大小信息
+        const parentOffsetTop = getOffsetTop(parent)
 
-        const ownWidthOrig = this.$refs.popper?.getBoundingClientRect().width || this.widthC.slice(0, -2) / 1
-        // const size = getElementSize(this.$refs.popperInner)
-        // console.log('size',size);
-        // const ownWidthOrig = size.width||this.widthC.slice(0,-2)/1
-        const ownWidth = this.minWidthFollowParent ? Math.max(ownWidthOrig, parentwidth) : ownWidthOrig
-        this.ownWidth = ownWidthOrig
-        let ownHeight = this.$refs.popper?.getBoundingClientRect().height || this.heightC.slice(0, -2) / 1
-        if (this.maxHeight !== 0 && ownHeight >= this.maxHeight) {
-          ownHeight = this.maxHeight
+        const parentOffetLeft = parent.getBoundingClientRect().left * 1
+        const parentOffsetRight = parent.getBoundingClientRect().right * 1
+        // const parentOffsetTop = parent.getBoundingClientRect().top * 1
+        // const parentOffsetBottom = parent.getBoundingClientRect().bottom * 1
+        const parentwidth = parent.getBoundingClientRect().width * 1
+        const parentHeight = parent.getBoundingClientRect().height * 1
+
+        const parentOffsetBottom = parentOffsetTop + parentHeight
+
+        // 获取popper大小
+        let ownWidth = popperAttr.width || 0; let ownHeight = popperAttr.height || 0
+        if (ownWidth === 0 || ownHeight === 0) {
+          const size = getElementSize(popper.value)
+          ownWidth = size.width
+          ownHeight = size.height
         }
-        // this.ownHeight = ownHeight
-        // const ownHeight = size.height||this.heightC.slice(0,-2)/1
-        const windowHeight = window.innerHeight - this.scrollWidth
-        const windowWidth = window.innerWidth - this.scrollWidth
+        // let { width: ownWidth, height: ownHeight } = getElementSize(popper.value)
+        // 赋值原始宽高
+        if (popperAttr.width === 0) {
+          popperAttr.width = ownWidth
+        }
+        if (popperAttr.height === 0) {
+          popperAttr.height = ownHeight
+        }
+
+        // 强制显示完全时可能需要重置宽高
+        if (props.alwaysInView) {
+          if (ownWidth > (windows.viewWidth - GAP * 2)) {
+            ownWidth = windows.viewWidth - GAP * 2
+            popperAttr.resetedWidth = ownWidth
+          }
+          if (ownHeight > (windows.viewHeight - GAP * 2)) {
+            ownHeight = windows.viewHeight - GAP * 2
+            popperAttr.resetedHeight = ownHeight
+          }
+        }
+        // 如果minWidthFollowParent为true的情况下宽度小于触发元素宽度则取触发元素宽度
+        if (props.minWidthFollowParent && ownWidth < parentwidth) {
+          ownWidth = parentwidth
+          popperAttr.resetedWidth = parentwidth
+        }
+        // 高度超出最大高度取最大高度
+        if (props.maxHeight !== 0 && ownHeight >= props.maxHeight) {
+          ownHeight = props.maxHeight
+          popperAttr.resetedHeight = ownHeight
+        }
 
         // 剩余空间
-        const restLeft = parentOffetLeft
-        const restRight = windowWidth - parentOffsetRight
-        const restTop = parentOffsetTop
-        const restBottom = windowHeight - parentOffsetBottom
+        const rest = {
+          left: parentOffetLeft,
+          right: windows.viewWidth - parentOffsetRight,
+          top: parentOffsetTop,
+          bottom: windows.viewHeight - parentOffsetBottom
+        }
 
-        const arrowSize = this.showArrow ? this.arrowAttr.arrowSize : 0
+        // 箭头大小
+        const arrowSize = props.showArrow ? arrowAttr.size : 0
 
-        const offset = isNaN(this.offset / 1) ? 0 : this.offset / 1
-        const offsetParent = isNaN(this.offsetParent / 1) ? 0 : this.offsetParent / 1
+        // 偏移量
+        // const offset = isNaN(props.offset / 1) ? 0 : props.offset / 1
+        // 相对父元素的偏移量
+        const offsetParent = isNaN(props.offsetParent / 1) ? 0 : props.offsetParent / 1
         // 是否横向矩形，横向矩形超出后位置落入上下，纵向矩形落入左右方向
-        const isRect = Math.max((restLeft - ownWidth), (restRight - ownWidth)) < Math.max((restTop - ownHeight), (restBottom - ownHeight))
+        const isRect = Math.max((rest.left - ownWidth), (rest.right - ownWidth)) < Math.max((rest.top - ownHeight), (rest.bottom - ownHeight))
 
-        if (!this.alwaysGivenPosition && this.position === 'bottom') {
-          if (restBottom > (ownHeight + arrowSize + offsetParent)) {
-            this.finalPosition = 'bottom'
-          } else if (restTop > (ownHeight + arrowSize + offsetParent)) {
-            this.finalPosition = 'top'
+        // 计算最终位置
+        let finalPosition = props.position// 初始化位置为默认位置
+        if (!props.alwaysGivenPosition) {
+          if (isRect) {
+            finalPosition = rest.bottom > rest.top ? POSITION.BOTTOM : POSITION.TOP// 上下空间哪个大放哪边
           } else {
-            if (isRect) {
-              this.finalPosition = restBottom > restTop ? 'bottom' : 'top'// 上下空间哪个大放哪边
+            finalPosition = rest.left > rest.right ? POSITION.LEFT : POSITION.RIGHT
+          }
+          switch (props.position) {
+            case POSITION.BOTTOM:
+              if (rest.bottom > (ownHeight + arrowSize + offsetParent)) {
+                finalPosition = POSITION.BOTTOM
+              } else if (rest.top > (ownHeight + arrowSize + offsetParent)) {
+                finalPosition = POSITION.TOP
+              }
+              break
+            case POSITION.TOP:
+              if (rest.top > (ownHeight + arrowSize + offsetParent)) {
+                finalPosition = POSITION.TOP
+              } else if (rest.bottom > (ownHeight + arrowSize + offsetParent)) {
+                finalPosition = POSITION.BOTTOM
+              }
+              break
+            case POSITION.LEFT:
+              if (rest.left > (ownWidth + arrowSize + offsetParent)) {
+                finalPosition = POSITION.LEFT
+              } else if (rest.right > (ownWidth + arrowSize + offsetParent)) {
+                finalPosition = POSITION.RIGHT
+              }
+              break
+            case POSITION.RIGHT:
+              if (rest.right > (ownWidth + arrowSize + offsetParent)) {
+                finalPosition = POSITION.RIGHT
+              } else if (rest.left > (ownWidth + arrowSize + offsetParent)) {
+                finalPosition = POSITION.LEFT
+              }
+              break
+          }
+        }
+        // console.log('finaPosition:', finalPosition)
+        popperAttr.finalPosition = finalPosition
+        // popperAttr.transition = SCALE_TRANSITION[finalPosition.toUpperCase()]
+
+        // 计算position
+        const position = {}
+        if ([POSITION.BOTTOM, POSITION.TOP].includes(finalPosition)) {
+          // 初始位置
+          let left = parentOffetLeft + parentwidth / 2 - ownWidth / 2
+          let top = finalPosition === POSITION.BOTTOM ? (parentOffsetBottom + arrowSize) : (parentOffsetTop - arrowSize - ownHeight)
+          // 强制窗口显示可能需要重置宽高
+          if (props.alwaysInView) {
+            if (left < GAP) {
+              left = GAP
+            } else if ((left + ownWidth) > (windows.viewWidth - GAP)) {
+              left = windows.viewWidth - GAP - ownWidth
+            }
+            if (finalPosition === POSITION.BOTTOM) {
+              if ((top + ownHeight + arrowSize) > windows.viewHeight - GAP) {
+                ownHeight = windows.viewHeight - GAP - parentOffsetBottom - arrowSize
+                popperAttr.resetedHeight = ownHeight
+              }
             } else {
-              this.finalPosition = restLeft > restRight ? 'left' : 'right'
+              if (top < GAP) {
+                top = GAP
+                ownHeight = parentOffsetTop - arrowSize - GAP
+                popperAttr.resetedHeight = ownHeight
+              }
             }
           }
-        }
-        if (!this.alwaysGivenPosition && this.position === 'top') {
-          if (restTop > (ownHeight + arrowSize + offsetParent)) {
-            this.finalPosition = 'top'
-          } else if (restBottom > (ownHeight + arrowSize + offsetParent)) {
-            this.finalPosition = 'bottom'
-          } else {
-            if (isRect) {
-              this.finalPosition = restBottom > restTop ? 'bottom' : 'top'// 上下空间哪个大放哪边
+          position.left = left
+          position.top = top
+          if (props.showArrow) {
+            const arrowPosition = {}
+            // arrowPosition.top = -(arrowSize / 2)
+            if (finalPosition === POSITION.BOTTOM) {
+              arrowPosition.top = -(arrowSize / 2)
             } else {
-              this.finalPosition = restLeft > restRight ? 'left' : 'right'
+              arrowPosition.bottom = -(arrowSize / 2)
+            }
+            arrowPosition.left = parentOffetLeft - position.left + parentwidth / 2 - arrowSize / 2
+            arrowAttr.position = arrowPosition
+          }
+        }
+
+        if ([POSITION.RIGHT, POSITION.LEFT].includes(finalPosition)) {
+          // 初始位置
+          let left = finalPosition === POSITION.LEFT ? (parentOffetLeft - arrowSize - ownWidth) : (parentOffsetRight + arrowSize)
+          let top = parentOffsetTop + parentHeight / 2 - ownHeight / 2
+          // 强制窗口显示可能需要重置宽高
+          if (props.alwaysInView) {
+            if ((top + ownHeight) > (windows.viewHeight - GAP)) {
+              top = windows.viewHeight - GAP - ownHeight
+            }
+            if (finalPosition === POSITION.RIGHT) {
+              if ((left + arrowSize + ownWidth) > (windows.viewWidth - GAP)) {
+                ownWidth = windows.viewWidth - GAP - parentOffsetRight - arrowSize
+                popperAttr.resetedWidth = ownWidth
+              }
+            } else {
+              if (left < GAP) {
+                left = GAP
+                ownWidth = parentOffetLeft - arrowSize - GAP
+                popperAttr.resetedWidth = ownWidth
+              }
             }
           }
-        }
-        if (!this.alwaysGivenPosition && this.position === 'left') {
-          if (restLeft > (ownWidth + arrowSize + offsetParent)) {
-            this.finalPosition = 'left'
-          } else if (restRight > (ownWidth + arrowSize + offsetParent)) {
-            this.finalPosition = 'right'
-          } else {
-            if (isRect) {
-              this.finalPosition = restBottom > restTop ? 'bottom' : 'top'
+          position.left = left
+          position.top = top
+          if (props.showArrow) {
+            const arrowPosition = {}
+            if (finalPosition === POSITION.RIGHT) {
+              arrowPosition.left = -(arrowSize / 2)
             } else {
-              this.finalPosition = restLeft > restRight ? 'left' : 'right'
+              arrowPosition.right = -(arrowSize / 2)
             }
+            arrowPosition.top = parentOffsetTop - position.top + parentHeight / 2 - arrowSize / 2
+            arrowAttr.position = arrowPosition
           }
         }
-        if (!this.alwaysGivenPosition && this.position === 'right') {
-          if (restRight > (ownWidth + arrowSize + offsetParent)) {
-            this.finalPosition = 'right'
-          } else if (restLeft > (ownWidth + arrowSize + offsetParent)) {
-            this.finalPosition = 'left'
-          } else {
-            if (isRect) {
-              this.finalPosition = restBottom > restTop ? 'bottom' : 'top'
-            } else {
-              this.finalPosition = restLeft > restRight ? 'left' : 'right'
-            }
-          }
-        }
-
-        // console.log("finaPosition:",this.finalPosition);
-        const position = { transition: 'tst-scale-down' }
-        const getInvewWidth = (value) => {
-          return this.alwaysInView ? getMiddle(GAP, value, getMax(windowWidth - ownWidth)) : value
-        }
-        const getInvewHeight = (value) => {
-          return this.alwaysInView ? getMiddle(GAP, value, getMax(windowHeight - ownHeight)) : value
-        }
-        if (this.finalPosition === 'bottom') {
-          const left = parentOffetLeft + parentwidth / 2 - ownWidth / 2 + offset
-          const top = parentOffsetBottom + arrowSize + offsetParent
-          if (this.showArrow) {
-            const minLeft = getInvewWidth(parentOffetLeft + parentwidth / 2 - ownWidth + arrowSize / 1.5)
-            const maxLeft = getInvewWidth(parentOffsetRight - parentwidth / 2 - arrowSize / 1.5)
-            const minTop = getInvewHeight(parentOffsetBottom + arrowSize)
-            const maxTop = getInvewHeight(windowHeight - ownHeight - arrowSize)
-            position.left = getMiddle(minLeft, left, maxLeft)
-            position.top = getMiddle(minTop, top, maxTop)
-          } else {
-            position.left = getInvewWidth(left)
-            position.top = getInvewHeight(top)
-          }
-          if (this.showArrow) {
-            const arrow = {}
-            arrow.top = -(arrowSize / 2)
-            arrow.left = parentOffetLeft - position.left + parentwidth / 2 - arrowSize / 2
-            this.arrowAttr.position = arrow
-          }
-        }
-        if (this.finalPosition === 'top') {
-          position.transition = 'tst-scale-up'
-          const left = parentOffetLeft + parentwidth / 2 - ownWidth / 2 + offset
-          const top = parentOffsetTop - ownHeight - arrowSize + offsetParent
-          if (this.showArrow) {
-            const minLeft = getInvewWidth(parentOffetLeft + parentwidth / 2 - ownWidth + arrowSize / 1.5)
-            const maxLeft = getInvewWidth(parentOffsetRight - parentwidth / 2 - arrowSize / 1.5)
-            const minTop = getInvewHeight(GAP)
-            const maxTop = getInvewHeight(parentOffsetTop - ownHeight - arrowSize)
-            position.left = getMiddle(minLeft, left, maxLeft)
-            position.top = getMiddle(minTop, top, maxTop)
-          } else {
-            position.left = getInvewWidth(left)
-            position.top = getInvewHeight(top)
-          }
-          if (this.showArrow) {
-            const arrow = {}
-            arrow.bottom = -(arrowSize / 2)
-            arrow.left = parentOffetLeft - position.left + parentwidth / 2 - arrowSize / 2
-            this.arrowAttr.position = arrow
-          }
-        }
-        if (this.finalPosition === 'left') {
-          position.transition = 'tst-scale-left'
-          const left = parentOffetLeft - ownWidth - arrowSize + offset
-          const top = parentOffsetTop + parentHeight / 2 - ownHeight / 2 + offsetParent
-          if (this.showArrow) {
-            const minLeft = getInvewWidth(GAP)
-            const maxLeft = getInvewWidth(parentOffetLeft - ownWidth - arrowSize)
-            const minTop = getInvewHeight(parentOffsetTop + parentHeight / 2 - ownHeight + arrowSize / 1.5)
-            const maxTop = getInvewHeight(parentOffsetBottom - parentHeight / 2 - arrowSize / 1.5)
-            position.left = getMiddle(minLeft, left, maxLeft)
-            position.top = getMiddle(minTop, top, maxTop)
-          } else {
-            position.left = getInvewWidth(left)
-            position.top = getInvewHeight(top)
-          }
-          if (this.showArrow) {
-            const arrow = {}
-            arrow.right = -(arrowSize / 2)
-            arrow.top = parentOffsetTop - position.top + parentHeight / 2 - arrowSize / 2
-            this.arrowAttr.position = arrow
-          }
-        }
-        if (this.finalPosition === 'right') {
-          position.transition = 'tst-scale-right'
-          const left = parentOffsetRight + arrowSize
-          const top = parentOffsetTop + parentHeight / 2 - ownHeight / 2 + offsetParent
-          if (this.showArrow) {
-            const minLeft = getInvewWidth(parentOffsetRight + arrowSize)
-            const maxLeft = getInvewWidth(windowWidth - ownWidth - arrowSize)
-            const minTop = getInvewHeight(parentOffsetTop + parentHeight / 2 - ownHeight + arrowSize / 1.5)
-            const maxTop = getInvewHeight(parentOffsetBottom - parentHeight / 2 - arrowSize / 1.5)
-            position.left = getMiddle(minLeft, left, maxLeft)
-            position.top = getMiddle(minTop, top, maxTop)
-          } else {
-            position.left = getInvewWidth(left)
-            position.top = getInvewHeight(top)
-          }
-          if (this.showArrow) {
-            const arrow = {}
-            arrow.left = -(arrowSize / 2)
-            arrow.top = parentOffsetTop - position.top + parentHeight / 2 - arrowSize / 2
-            this.arrowAttr.position = arrow
-          }
-        }
-        this.popperPosition = position
+        popperAttr.position = position
+        console.log(position)
       }
-    },
+    }
 
-    contains (e) {
-      return this.$refs?.popperInner?.contains(e)
-    },
-
-    isFixed (e) {
-      if (!e || e.nodeName === 'BODY') {
-        return false
+    // popper计算style
+    const zIndex = zIndexManager.nextIndex()// 元素层级
+    const popperStyle = computed(() => {
+      const { widthC, heightC } = size(props)
+      const style = {
+        width: popperAttr.resetedWidth ? `${popperAttr.resetedWidth}px` : widthC.value,
+        height: popperAttr.resetedHeight ? `${popperAttr.resetedHeight}px` : heightC.value
       }
-      const pos = window.getComputedStyle(e).position
-      if (pos === 'fixed') {
-        return true
+      style.zIndex = zIndex
+      // if (popperAttr.position.left) {
+      //   style.left = `${popperAttr.position.left}px`
+      // }
+      // if (popperAttr.position.top) {
+      //   style.top = `${popperAttr.position.top}px`
+      // }
+      style.transform = `translate(${popperAttr.position.left || 0}px,${popperAttr.position.top || 0}px)`
+      return style
+    })
+
+    const mouseenter = (e) => {
+      ctx.emit('mouseenter', e)
+    }
+
+    const mouseleave = (e) => {
+      ctx.emit('mouseleave', e)
+    }
+
+    const arrowStyle = computed(() => {
+      const style = {}
+      // style.zIndex = zIndex - 1
+      if (arrowAttr.position.left) {
+        style.left = `${arrowAttr.position.left}px`
       }
-      if (e.parentNode) {
-        return this.isFixed(e.parentNode)
+      if (arrowAttr.position.right) {
+        style.right = `${arrowAttr.position.right}px`
       }
-    },
+      if (arrowAttr.position.top) {
+        style.top = `${arrowAttr.position.top}px`
+      }
+      if (arrowAttr.position.bottom) {
+        style.bottom = `${arrowAttr.position.bottom}px`
+      }
+      style.backgroundColor = arrowAttr.color
+      style.width = `${arrowAttr.size}px`
+      style.height = `${arrowAttr.size}px`
+      return style
+    })
+    // const isFixed = (e) => {
+    //   if (!e || e.nodeName === 'BODY') {
+    //     return false
+    //   }
+    //   const pos = window.getComputedStyle(e).position
+    //   if (pos === 'fixed') {
+    //     return true
+    //   }
+    //   if (e.parentNode) {
+    //     return isFixed(e.parentNode)
+    //   }
+    // }
+    onMounted(() => {
+      calcPosition('mounted')
+      // if (!isFixed(popper.value)) { // 固定位置不监听滚动事件
+      //   on(document, 'scroll', calcPosition)
+      // }
+      // on(window, 'resize', resetWindowSize)
+      on(window, 'resize', calcPosition)
+    })
 
-    mouseover (e) {
-      this.$emit('mouseover', e)
-    },
-
-    mouseout (e) {
-      this.$emit('mouseout', e)
-    },
-
-    getScrollWidth () {
-      var noScroll; var scroll; var oDiv = document.createElement('DIV')
-      oDiv.style.cssText = 'position:absolute; top:9999px; width:100px; height:100px; overflow:hidden;'
-      noScroll = document.body.appendChild(oDiv).clientWidth
-      oDiv.style.overflowY = 'scroll'
-      scroll = oDiv.clientWidth
-      document.body.removeChild(oDiv)
-      return (noScroll - scroll) + 20
-      // return window.innerWidth-document.body.clientWidth
+    onUnmounted(() => {
+      // if (!isFixed(popper.value)) {
+      //   off(document, 'scroll', calcPosition)
+      // }
+      off(window, 'resize', calcPosition)
+    })
+    return {
+      model,
+      popperStyle,
+      mouseenter,
+      mouseleave,
+      popper,
+      popperAttr,
+      arrowStyle
     }
   },
 
@@ -493,17 +443,18 @@ export default {
     return h(Teleport, { to: 'body' }, [h(
       Transition,
       {
-        name: this.popperPosition.transition
+        name: this.popperAttr.transition
       },
       {
         default: withCtx(() => [withDirectives(
           h(
             'div',
             {
-              class: 'popper-out',
-              style: this.style,
-              onMouseover: this.mouseover,
-              onMouseout: this.mouseout
+              class: 'xl-popper',
+              style: this.popperStyle,
+              onMouseenter: this.mouseenter,
+              onMouseleave: this.mouseleave,
+              ref: 'popper'
 
             }, [h(
               'div',
@@ -511,20 +462,20 @@ export default {
               null
             ), h(
               'div',
-              { class: [TYPES[this.type], 'xl-popper'], style: this.contentStyle, ref: 'popperInner' },
-              h(Scroll, null, this.$slots.default())
+              { class: [TYPES[this.type], 'xl-popper-content'], style: this.popStyle },
+              h(Scroll, { width: 1, height: 1 }, this.$slots.default())
             )]
 
           ),
           [[vShow, this.model]]
         )])
       }
-    ),
-    isNaN(this.width) || this.width === 0 || isNaN(this.height) || this.height === 0 ? h(
-      'div',
-      { class: [TYPES[this.type], 'xl-hidden-popper'], ref: 'popper', style: this.contentStyle },
-      h(Scroll, null, this.$slots.default())
-    ) : null
+    )
+    // ,isNaN(this.width) || this.width === 0 || isNaN(this.height) || this.height === 0 ? h(
+    //   'div',
+    //   { class: [TYPES[this.type], 'xl-hidden-popper'], ref: 'popper', style: this.contentStyle },
+    //   h(Scroll, null, this.$slots.default())
+    // ) : null
     ])
   }
 }
@@ -532,27 +483,30 @@ export default {
 
 <style lang="less">
 @gap:20px;
-.popper-out{
-  position: fixed;
+.xl-popper{
+  position: absolute;
   z-index: 100;
   left:0;
   top:0;
   border-radius: 5px;
   box-shadow: 0px 3px 21px 0px rgba(0, 0, 0, 0.17);
   >.arrow{
-    display: block;
+    display: inline-block;
     width: 0;
     height: 0;
     position: absolute;
     box-shadow: 0px 3px 21px 0px rgba(0, 0, 0, 0.17);
     transform: rotate(45deg);
   }
+  >.xl-popper-content{
+    position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+  }
 }
-.xl-popper{
-  position: relative;
-  box-sizing: border-box;
-  overflow: hidden;
-}
+
 .xl-popper-primary-style{
   padding:@gap/2 @gap/2 @gap/2 @gap/2;
   background-color: white;
@@ -560,13 +514,27 @@ export default {
 .xl-popper-none-style{
   background-color: white;
 }
-.xl-hidden-popper{
-  position: absolute;
-  box-sizing: border-box;
-  top:0;
-  overflow: hidden;
-  visibility: hidden;
-  z-index: -100;
+// .xl-hidden-popper{
+//   position: absolute;
+//   box-sizing: border-box;
+//   top:0;
+//   overflow: hidden;
+//   visibility: hidden;
+//   z-index: -100;
+// }
+
+.tst-faded-enter-active,
+.tst-faded-leave-active {
+  opacity: 1;
+  -webkit-transition: opacity 300ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition: opacity 300ms cubic-bezier(0.23, 1, 0.32, 1);
+  -webkit-transform-origin: center top;
+  transform-origin: center top;
+}
+
+.tst-faded-enter-from,
+.tst-faded-leave-to {
+  opacity: 0;
 }
 
 .tst-scale-down-enter-active,

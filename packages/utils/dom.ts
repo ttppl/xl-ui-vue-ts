@@ -231,6 +231,28 @@ export const scrollTo = (container:any = document.documentElement || document.bo
   rAF(frameFunc)
 }
 
+export const getScrollWidth = () => {
+  var noScroll; var scroll; var oDiv = document.createElement('DIV')
+  oDiv.style.cssText = 'position:absolute; top:9999px; width:100px; height:100px; overflow:hidden;'
+  noScroll = document.body.appendChild(oDiv).clientWidth * 1
+  oDiv.style.overflowY = 'scroll'
+  scroll = oDiv.clientWidth * 1
+  document.body.removeChild(oDiv)
+  return (noScroll - scroll) + 20
+  // return window.innerWidth-document.body.clientWidth
+}
+
+export const getWindowSize = function () {
+  const size:any = {}
+  size.width = window.innerWidth
+  size.height = window.innerHeight
+  return size
+}
+
+export const hasScrollbar = () => {
+  return document.body.scrollHeight > (window.innerHeight || document.documentElement.clientHeight)
+}
+
 export default {
   createElement,
   addClass,
@@ -246,5 +268,8 @@ export default {
   off,
   getOffsetTop,
   getOffsetTopDistance,
-  scrollTo
+  scrollTo,
+  getScrollWidth,
+  getWindowSize,
+  hasScrollbar
 }

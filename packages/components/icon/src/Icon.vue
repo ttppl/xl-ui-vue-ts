@@ -1,8 +1,9 @@
 <template>
-  <i class="iconfont" :class="classes" :style="style" />
+  <i class="iconfont" :class="classes" :style="style" v-bind="$attrs"><slot /></i>
 </template>
 
 <script type="text/ecmascript-6">
+import { computed } from '@vue/reactivity'
 import { themeType } from '../../../types'
 export default {
   name: 'XlIcon',
@@ -11,6 +12,8 @@ export default {
 
   components: {
   },
+
+  inheritAttrs: false,
 
   props: {
     icon: {
@@ -40,6 +43,7 @@ export default {
       type: String,
       default: ''
     },
+
     cursor: {
       type: String,
       default: 'default'
@@ -51,37 +55,27 @@ export default {
     }
   },
 
-  data () {
-    return {
-    }
-  },
-
-  computed: {
-    classes () {
-      const iconType = `xl-icon-${this.icon}`
-      const color = themeType(this.type, null, this.lightStyle)
-      const block = { 'xl-icon-block': this.block }
-      return [iconType, color, block]
-    },
-
-    style () {
-      const style = { ...this.popStyle }
-      if (this.color) {
-        style.color = this.color
+  setup (props, ctx) {
+    const classes = computed(() => {
+      const iconType = `xl-icon-${props.icon}`
+      const color = themeType(props.type, null, props.lightStyle)
+      const block = { 'xl-icon-block': props.block }
+      const pointer = { 'xl-icon-pointer': ctx.attrs.onClick }
+      return [iconType, color, block, pointer]
+    })
+    const style = computed(() => {
+      const style = { ...props.popStyle }
+      if (props.color) {
+        style.color = props.color
       }
-      style.fontSize = `${this.size}px`
-      style.cursor = this.cursor
+      style.fontSize = `${props.size}px`
+      style.cursor = props.cursor
       return style
+    })
+    return {
+      classes,
+      style
     }
-  },
-
-  created () {
-  },
-
-  mounted () {
-  },
-
-  methods: {
   }
 }
 </script>
@@ -90,5 +84,8 @@ export default {
 @import url('./icons.less');
 .xl-icon-block{
   display: inline-block;
+}
+.xl-icon-pointer{
+  cursor: pointer!important;
 }
 </style>

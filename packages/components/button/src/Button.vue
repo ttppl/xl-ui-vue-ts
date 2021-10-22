@@ -1,5 +1,5 @@
 <template>
-  <div ref="XlButton" class="XlButton" :style="styleC" :class="classC" @click.stop="clickHandler">
+  <div ref="XlButton" class="XlButton" :style="styleC" :class="classC" @click.capture="clickHandler">
     <span class="label"><slot>{{ label }}</slot></span>
   </div>
 </template>
@@ -46,7 +46,7 @@ export default {
     }
   },
 
-  emits: ['click'],
+  // emits: ['click'],
 
   data () {
     return {
@@ -106,7 +106,7 @@ export default {
   methods: {
     clickHandler () {
       this.go()
-      this.$emit('click')
+      // this.$emit('click')
     },
 
     go () {

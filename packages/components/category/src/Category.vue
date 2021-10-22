@@ -1,5 +1,5 @@
 <script type="text/ecmascript-6">
-import { defineComponent, provide, reactive, h, onMounted, onUnmounted, ref, computed } from 'vue'
+import { defineComponent, provide, reactive, h, onMounted, onUnmounted, ref, computed, nextTick } from 'vue'
 import { on, off, scrollTo } from '../../../utils/dom'
 import { debounce } from '../../../utils/utils'
 export default defineComponent({
@@ -22,6 +22,11 @@ export default defineComponent({
     },
 
     left: Boolean,
+    neverHide: Boolean,
+    // showCategory: {
+    //   type: Boolean,
+    //   default: true
+    // },
 
     categoryClass: {
       type: Object,
@@ -32,7 +37,7 @@ export default defineComponent({
 
     categoryWidth: { //
       type: [Number, String],
-      default: 200
+      default: 0
     },
 
     fixed: {
@@ -79,14 +84,16 @@ export default defineComponent({
       if (props.fixed) {
         style.flex = `0 1 ${window.innerWidth - ctgRef.value?.getBoundingClientRect().width}`
       }
+      // style.paddingRight = `${ctgRef.value?.getBoundingClientRect().width}px`
       return style
     })
 
     // 目录style
     const ctgRef = ref(null)
     const transform = reactive({})
+    let initTop = 0
     const setTransform = debounce(() => {
-      transform.transform = `translateY(${document.documentElement.scrollTop}px)`
+      transform.transform = `translateY(${Math.max(document.documentElement.scrollTop - initTop, 0)}px)`
     }, 100)
 
     const categoryStyleC = computed(() => {
@@ -94,20 +101,36 @@ export default defineComponent({
       if (!props.fixed) {
         Object.assign(style, transform)
       } else {
-        style.width = `${props.categoryWidth}px`
+        style.width = `${props.categoryWidth || 200}px`
         style.right = style.right || '20px'
         style.top = style.top || '80px'
       }
       return style
     })
 
+    const showCategory = ref(window.innerWidth > 800)
+    const isHide = debounce(() => {
+      showCategory.value = window.innerWidth > 800
+    }, 100)
+    if (props.neverHide) {
+      showCategory.value = true
+    } else {
+      on(window, 'resize', isHide)
+    }
+
     onMounted(() => {
+      nextTick().then(() => {
+        initTop = ctgRef.value?.getBoundingClientRect().top + document.documentElement.scrollTop - 20
+      })
       on(document, 'scroll', getScrollTop)
       if (!props.fixed) {
         on(document, 'scroll', setTransform)
       }
     })
     onUnmounted(() => {
+      if (!props.neverHide) {
+        off(window, 'resize', isHide)
+      }
       off(document, 'scroll', getScrollTop)
       if (!props.fixed) {
         off(document, 'scroll', setTransform)
@@ -117,6 +140,7 @@ export default defineComponent({
     return {
       ctgRef,
       categorys,
+      showCategory,
       activeCategoryIndex,
       contentStyle,
       categoryStyleC
@@ -156,9 +180,9 @@ export default defineComponent({
     }
     return h('div', { class: ['Category', { 'Category-reverse': this.left }] },
       [h('div', { class: 'content', style: this.contentStyle }, this.$slots.default()),
-        h('div', { ref: 'ctgRef', class: ['categorys', this.fixed ? 'fixed-category' : 'relative-category'], style: this.categoryStyleC },
-          [this.title ? h('p', { class: 'title' }, this.title) : null, h('ol', { class: ['categoty-list', { 'none-order-list': !this.showOrder }] }, renderCategory())]),
-        this.fixed ? h('div', { style: { width: `${this.categoryWidth}px`, flexShrink: 0 } }, '') : null])
+        this.showCategory ? h('div', { ref: 'ctgRef', class: ['categorys', this.fixed ? 'fixed-category' : 'relative-category'], style: this.categoryStyleC },
+          [this.title ? h('p', { class: 'title' }, this.title) : null, h('ol', { class: ['categoty-list', { 'none-order-list': !this.showOrder }] }, renderCategory())]) : null,
+        this.showCategory && this.fixed ? h('div', { style: { width: `${this.categoryWidth}px`, flexShrink: 0 } }, '') : null])
   }
 })
 </script>
@@ -173,16 +197,19 @@ export default defineComponent({
   .content{
     box-sizing: border-box;
     flex-grow: 1;
-  }
-  .title{
-    font-weight: bold;
-    font-size: 18px;
+    flex-shrink: 3;
+    width:0;//避免overflow失效
   }
   .categorys{
     box-sizing: border-box;
     height:0;
-    flex-shrink:0;
+    flex-shrink:7;
+    flex-grow: 0;
     // line-height: 25px;
+    .title{
+      font-weight: bold;
+      font-size: 18px;
+    }
     .categoty-list{
       >li:hover{
         color: @activeColor;
@@ -220,7 +247,10 @@ export default defineComponent({
   }
   .relative-category{
     position: relative;
-    padding: 0 20px;
+    // position: absolute;
+    // top: 0;
+    // right:0;
+    padding: 0 10px;
     transition: transform 1000ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 }

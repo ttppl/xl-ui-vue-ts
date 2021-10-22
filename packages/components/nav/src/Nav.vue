@@ -9,7 +9,7 @@
     <div class="content" :style="contentStyle">
       <slot></slot>
     </div>
-    <Popup v-model="popNav" :width="width" :direction="position" :popStyle="{backgroundColor:'white'}">
+    <Popup v-model="popNav" :width="0.6" :direction="position" :popStyle="{backgroundColor:'white'}">
       <slot name="nav" ></slot>
     </Popup>
   </div>

@@ -4,7 +4,7 @@
       <XlButton class="show-code" plain light-style @click="showCode=!showCode">show code</XlButton>
       <slot />
     </div>
-    <div class="example-code">
+    <div class="example-codes">
       <XlCollapse>
         <div v-show="showCode" v-highlight class="example-code">
           <pre>
@@ -62,6 +62,8 @@ export default {
   }
   .example-code{
     font-size: 20px;
+    width: 100%;
+    // overflow-x: scroll;
   }
 }
 </style>

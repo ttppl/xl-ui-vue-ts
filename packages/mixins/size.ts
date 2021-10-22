@@ -4,6 +4,21 @@ interface propsType{
   height:string|number
 }
 
+export const computeSize = (size:number|string):string => {
+  if (isNaN(size as number)) {
+    return size as string
+  }
+  if (size === 0) {
+    return 'auto'
+  } else if (size > 1) {
+    return `${size}px`
+  } else if (size < 1) {
+    return `${size as number * 100}%`
+  } else {
+    return '100%'
+  }
+}
+
 export default function (props:propsType) {
   const widthC = computed(():string => {
     if (isNaN(props.width as number)) {

@@ -1,11 +1,11 @@
 <template>
-  <div ref="popover" v-clickoutside="closePopOutSide" class="XlPopover" :class="{'xl-inline-block':inline}" @[popTrigger]="show" @mouseout="mouseout">
-    <slot name="reference" />
+  <div ref="popover" v-clickoutside="closePopOutSide" class="XlPopover" :class="{'xl-inline-block':inline}" @[popTrigger]="showPop" @mouseleave="mouseleave">
+    <slot name="reference" />{{}}
     <popper ref="popper" v-model="model" :position="position" :show-arrow="showArrow" :offset="offset" :offset-parent="offsetParent"
             :width="width" :height="height" :pop-style="popStyle"
             :always-given-position="alwaysGivenPosition" :always-in-view="alwaysInView"
-            @mouseover="mouseover" @mouseout="mouseout"
-            @close="closePop">
+            @mouseenter="mouseenter" @mouseleave="mouseleave"
+            @close="model = false">
       <slot />
     </popper>
   </div>
@@ -14,26 +14,13 @@
 <script type="text/ecmascript-6">
 import clickoutside from '../../../utils/clickouside'
 import popper from './Popper'
-import { computed } from 'vue'
+import { computed, provide, reactive, ref } from 'vue'
 export default {
   name: 'XlPopover',
 
   directives: { clickoutside },
   components: {
     popper
-  },
-
-  provide () {
-    return {
-      XlPopperTrigger: computed(() => {
-        return {
-          name: 'XlPopover',
-          dom: () => {
-            return this.$refs.popover
-          }
-        }
-      })
-    }
   },
 
   props: {
@@ -64,11 +51,6 @@ export default {
       default: 'click'
     },
 
-    borderRadius: {
-      type: Number,
-      default: 3
-    },
-
     popStyle: {
       type: Object,
       default: function () { return null }
@@ -90,94 +72,77 @@ export default {
   },
 
   emits: ['update:modelValue'],
-  setup () {
 
-  },
-
-  data () {
-    return {
-      showPanel: false
-    }
-  },
-
-  computed: {
-    model: {
+  setup (props, ctx) {
+    const popover = ref(null)
+    provide('XlPopperTrigger', reactive({
+      name: 'XlPopover',
+      dom: () => {
+        return popover.value
+      }
+    }))
+    const showPanel = ref(false)
+    const model = computed({
       get () {
-        if (this.trigger === 'manual') { return this.modelValue }
-        return this.showPanel
+        if (props.trigger === 'manual') { return props.modelValue }
+        return showPanel.value
       },
 
       set (nv) {
-        if (this.trigger === 'manual') {
-          this.$emit('update:modelValue', nv)
+        if (props.trigger === 'manual') {
+          ctx.emit('update:modelValue', nv)
         } else {
-          this.showPanel = nv
+          showPanel.value = nv
         }
       }
-    },
-
-    popTrigger () {
-      if (this.trigger === 'hover') {
-        return 'mouseover'
+    })
+    const popTrigger = computed(() => {
+      if (props.trigger === 'hover') {
+        return 'mouseenter'
       }
-      if (this.trigger === 'click' || this.trigger === 'manual') {
-        return 'click'
-      }
-      return this.trigger
+      return props.trigger
+    })
+    const showPop = () => {
+      model.value = !model.value
     }
-  },
 
-  created () {
-  },
-
-  mounted () {
-  },
-
-  methods: {
-    show () {
-      this.model = !this.model
-    },
-
-    closePopOutSide (e) {
-      if (!this.$refs?.popper?.contains(e.target)) {
-        this.model = false
+    const popper = ref(null)
+    const closePopOutSide = (e) => {
+      if (!popper.value.$el.contains(e.target)) {
+        model.value = false
       }
-    },
+    }
 
-    closePop () {
-      this.model = false
-    },
-
-    mouseover () {
-      if (this.trigger === 'hover') {
-        if (this.timer) {
-          clearTimeout(this.timer)
+    let timer = null
+    const mouseenter = () => {
+      if (props.trigger === 'hover') {
+        if (timer) {
+          clearTimeout(timer)
         }
-        this.model = true
+        model.value = true
       }
-    },
+    }
 
-    mouseout () {
-      // if (this.trigger === 'hover') {
-      //   let timeout = null
-      //   document.body.onmouseover = (e) => {
-      //     if (!this.$refs.popper.contains(e.target)) {
-      //       timeout = setTimeout(() => {
-      //         this.model = false
-      //         document.body.onmouseover = null
-      //       }, 300)
-      //     } else {
-      //       clearTimeout(timeout)
-      //     }
-      //   }
-      // }
-      if (this.trigger === 'hover') {
-        this.timer = setTimeout(() => {
-          this.model = false
+    const mouseleave = () => {
+      if (props.trigger === 'hover') {
+        timer = setTimeout(() => {
+          model.value = false
         }, 300)
       }
     }
+    return {
+      popover,
+      showPanel,
+      model,
+      popTrigger,
+      showPop,
+      popper,
+      closePopOutSide,
+      mouseenter,
+      mouseleave
+    }
   }
+
 }
 </script>
 

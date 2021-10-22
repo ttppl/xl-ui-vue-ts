@@ -3,7 +3,9 @@
     <transition :name="transition">
       <div v-show="showPopup" ref="content" v-resize="{disable:type!=='dialog'}" class="xl-popup-content" :style="style" :class="classes">
         <svg v-if="showClose" :style="{zIndex:zIndex+2}" class="xl-close-icon" t="1630307589611" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4768" width="20" height="20" @click="showPopup=false"><path d="M557.312 513.248l265.28-263.904c12.544-12.48 12.608-32.704 0.128-45.248-12.512-12.576-32.704-12.608-45.248-0.128l-265.344 263.936-263.04-263.84C236.64 191.584 216.384 191.52 203.84 204 191.328 216.48 191.296 236.736 203.776 249.28l262.976 263.776L201.6 776.8c-12.544 12.48-12.608 32.704-0.128 45.248 6.24 6.272 14.464 9.44 22.688 9.44 8.16 0 16.32-3.104 22.56-9.312l265.216-263.808 265.44 266.24c6.24 6.272 14.432 9.408 22.656 9.408 8.192 0 16.352-3.136 22.592-9.344 12.512-12.48 12.544-32.704 0.064-45.248L557.312 513.248z" p-id="4769" :fill="iconColor" /></svg>
-        <div v-drag="{childLevel:1,disable:type!=='dialog'}" class="xl-popup-content-title"><slot name="title"><p v-if="title">{{ title }}</p></slot></div>
+        <div v-drag="{childLevel:1,disable:type!=='dialog'}" class="xl-popup-content-title">
+          <slot name="title"><p v-if="title">{{ title }}</p></slot>
+        </div>
         <Scroll :show-scroll="showScroll" class="xl-popup-content-inner">
           <slot />
         </Scroll>
@@ -28,8 +30,8 @@ import whCompute from '../../../mixins/whCompute'
 import Button from '../../button'
 import dragHandler from '../../../utils/dragHandler'
 import resizeHandler from '../../../utils/resizeHandler'
-import { getElementSize } from '../../../utils/dom'
-import { getWindowSize } from '../../../utils/utils'
+import { getElementSize, getWindowSize } from '../../../utils/dom'
+
 // v-clickoutside="closePop"
 const colors = {
   primary: '#409EFF',
@@ -297,10 +299,10 @@ export default {
   min-width: 20%;
   min-height: 20%;
   opacity: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: stretch;
+  // display: flex;
+  // flex-direction: column;
+  // justify-content: space-between;
+  // align-items: stretch;
   .xl-popup-content-inner{
     padding : 0 8px;
   }
