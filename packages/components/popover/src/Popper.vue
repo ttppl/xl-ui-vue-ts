@@ -2,7 +2,7 @@
 import { h, Teleport, Transition, vShow, withDirectives, withCtx, ref, inject, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import zIndexManager from '@/utils/zIndexManager'
 import Scroll from '@/components/scroll/src/Scroll'
-import { getElementSize, getScrollWidth, on, off, hasScrollbar, getOffsetTop } from '@/utils/dom'
+import { getElementSize, getScrollWidth, on, off, hasScrollbar, getOffsetTop, getOffsetLeft } from '@/utils/dom'
 import { POSITION, SCALE_TRANSITION } from '@/types/consistant'
 import size from '@/mixins/size'
 // 常量
@@ -163,16 +163,18 @@ export default {
         windows.viewWidth = window.innerWidth - windows.scrollWidth
         windows.viewHeight = window.innerHeight - windows.scrollWidth
         // 触发元素的位置和大小信息
-        const parentOffsetTop = getOffsetTop(parent)
 
-        const parentOffetLeft = parent.getBoundingClientRect().left * 1
-        const parentOffsetRight = parent.getBoundingClientRect().right * 1
+        // const parentOffsetLeft = parent.getBoundingClientRect().left * 1
+        // const parentOffsetRight = parent.getBoundingClientRect().right * 1
         // const parentOffsetTop = parent.getBoundingClientRect().top * 1
         // const parentOffsetBottom = parent.getBoundingClientRect().bottom * 1
         const parentwidth = parent.getBoundingClientRect().width * 1
         const parentHeight = parent.getBoundingClientRect().height * 1
 
+        const parentOffsetTop = getOffsetTop(parent) * 1
+        const parentOffsetLeft = getOffsetLeft(parent) * 1
         const parentOffsetBottom = parentOffsetTop + parentHeight
+        const parentOffsetRight = parentOffsetLeft + parentwidth
 
         // 获取popper大小
         let ownWidth = popperAttr.width || 0; let ownHeight = popperAttr.height || 0
@@ -191,13 +193,25 @@ export default {
         }
 
         // 强制显示完全时可能需要重置宽高
+        // if (props.alwaysInView) {
+        //   if (ownWidth > (windows.viewWidth - GAP * 2)) {
+        //     ownWidth = windows.viewWidth - GAP * 2
+        //     popperAttr.resetedWidth = ownWidth
+        //   }
+        //   if (ownHeight > (windows.viewHeight - GAP * 2)) {
+        //     ownHeight = windows.viewHeight - GAP * 2
+        //     popperAttr.resetedHeight = ownHeight
+        //   }
+        // }
         if (props.alwaysInView) {
-          if (ownWidth > (windows.viewWidth - GAP * 2)) {
-            ownWidth = windows.viewWidth - GAP * 2
+          const bodyWidth = document.body.offsetWidth - (hasScrollbar() ? windows.scrollWidth : 0)
+          const bodyHeight = document.body.offsetHeight - (hasScrollbar() ? windows.scrollWidth : 0)
+          if (ownWidth > (bodyWidth - GAP * 2)) {
+            ownWidth = bodyWidth - GAP * 2
             popperAttr.resetedWidth = ownWidth
           }
-          if (ownHeight > (windows.viewHeight - GAP * 2)) {
-            ownHeight = windows.viewHeight - GAP * 2
+          if (ownHeight > (bodyHeight - GAP * 2)) {
+            ownHeight = bodyHeight - GAP * 2
             popperAttr.resetedHeight = ownHeight
           }
         }
@@ -214,7 +228,7 @@ export default {
 
         // 剩余空间
         const rest = {
-          left: parentOffetLeft,
+          left: parentOffsetLeft,
           right: windows.viewWidth - parentOffsetRight,
           top: parentOffsetTop,
           bottom: windows.viewHeight - parentOffsetBottom
@@ -275,9 +289,10 @@ export default {
 
         // 计算position
         const position = {}
+        debugger
         if ([POSITION.BOTTOM, POSITION.TOP].includes(finalPosition)) {
           // 初始位置
-          let left = parentOffetLeft + parentwidth / 2 - ownWidth / 2
+          let left = parentOffsetLeft + parentwidth / 2 - ownWidth / 2
           let top = finalPosition === POSITION.BOTTOM ? (parentOffsetBottom + arrowSize) : (parentOffsetTop - arrowSize - ownHeight)
           // 强制窗口显示可能需要重置宽高
           if (props.alwaysInView) {
@@ -309,14 +324,14 @@ export default {
             } else {
               arrowPosition.bottom = -(arrowSize / 2)
             }
-            arrowPosition.left = parentOffetLeft - position.left + parentwidth / 2 - arrowSize / 2
+            arrowPosition.left = parentOffsetLeft - position.left + parentwidth / 2 - arrowSize / 2
             arrowAttr.position = arrowPosition
           }
         }
 
         if ([POSITION.RIGHT, POSITION.LEFT].includes(finalPosition)) {
           // 初始位置
-          let left = finalPosition === POSITION.LEFT ? (parentOffetLeft - arrowSize - ownWidth) : (parentOffsetRight + arrowSize)
+          let left = finalPosition === POSITION.LEFT ? (parentOffsetLeft - arrowSize - ownWidth) : (parentOffsetRight + arrowSize)
           let top = parentOffsetTop + parentHeight / 2 - ownHeight / 2
           // 强制窗口显示可能需要重置宽高
           if (props.alwaysInView) {
@@ -331,7 +346,7 @@ export default {
             } else {
               if (left < GAP) {
                 left = GAP
-                ownWidth = parentOffetLeft - arrowSize - GAP
+                ownWidth = parentOffsetLeft - arrowSize - GAP
                 popperAttr.resetedWidth = ownWidth
               }
             }

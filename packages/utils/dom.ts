@@ -203,6 +203,17 @@ export const getOffsetTop = (el) => {
 
   return offset
 }
+export const getOffsetLeft = (el) => {
+  let offset = 0
+  let parent = el
+
+  while (parent) {
+    offset += parent.offsetLeft
+    parent = parent.offsetParent
+  }
+
+  return offset
+}
 
 export const getOffsetTopDistance = (el, containerEl) => {
   return Math.abs(getOffsetTop(el) - getOffsetTop(containerEl))
@@ -267,6 +278,7 @@ export default {
   on,
   off,
   getOffsetTop,
+  getOffsetLeft,
   getOffsetTopDistance,
   scrollTo,
   getScrollWidth,
