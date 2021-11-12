@@ -22,6 +22,8 @@
         </code>
       </pre>
     </div>
+    <p>源码：</p>
+    <a href="https://github.com/ttppl/xl-ui-vue-ts" target="_blank">https://github.com/ttppl/xl-ui-vue-ts</a>
   </div>
 </template>
 
