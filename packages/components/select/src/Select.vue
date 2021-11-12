@@ -1,5 +1,5 @@
 <template>
-  <div class="XlSelect">
+  <div class="XlSelect" :style="containerStyle">
     <div ref="select" v-clickoutside="closeSelect" tabindex="0" :class="classes" class="xl-select-label" :style="styleInner" @click="showList">
       <span v-if="selected" :style="textStyle" class="selected">{{ selected }}</span>
       <span v-else class="placeholder">{{ placeholder }}</span>
@@ -9,7 +9,8 @@
         <line x1="100%" y1="0" x2="0" y2="100%" :style="`stroke:${themeColor};stroke-width:1`" />
       </svg>
     </div>
-    <Popper v-model="showSelectMenu" type="select" :max-height="panelHeight" min-width-follow-parent>
+
+    <Popper ref="popper" v-model="showSelectMenu" min-width="1" :transform="false" transition="tst-scale-down" position="bottom" always-in-view :pop-style="{padding:'10px 0'}" :max-height="panelHeight">
       <div class="options">
         <slot><div class="no-data-tip">No data</div></slot>
       </div>
@@ -18,11 +19,12 @@
 </template>
 
 <script type="text/ecmascript-6">
-import clickoutside from '../../../utils/clickouside'
-import { computed } from 'vue'
+import clickoutside from '@/directives/clickOutside'
+import { computed, provide, reactive, ref, watch } from 'vue'
 import { InputThemeType, themeType, COLORS } from '../../../types'
-import Popper from '../../popover/src/Popper.vue'
-import whCompute from '../../../mixins/whCompute'
+import Popper from '@/components/popover/src/Popper.vue'
+import size from '@/mixins/size'
+import { isNull } from '@/utils/common'
 export default {
   name: 'XlSelect',
 
@@ -30,31 +32,6 @@ export default {
 
   components: {
     Popper
-  },
-
-  mixins: [whCompute],
-
-  provide () {
-    return {
-      XlSelect: computed(() => {
-        return {
-          name: 'XlSelect',
-          model: this.model,
-          multiSelect: this.multiSelect,
-          update: (nv) => {
-            this.model = nv
-          }
-        }
-      }),
-
-      XlPopperTrigger: computed(() => {
-        return {
-          dom: () => {
-            return this.$refs.select
-          }
-        }
-      })
-    }
   },
 
   props: {
@@ -80,7 +57,7 @@ export default {
     modelValue: {
       type: [String, Array],
       required: true,
-      default: ''
+      default: null
     },
 
     placeholder: {
@@ -129,122 +106,152 @@ export default {
       default: () => {
         return null
       }
+    },
+
+    inline: {
+      type: Boolean,
+      default: true
     }
   },
 
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'after-select'],
 
-  data () {
-    return {
-      showSelectMenu: false
-    }
-  },
-
-  computed: {
-    classes () {
-      const cls = this.popClass || []
-      const type = InputThemeType(this.type || 'primary', this.lightStyle)
-      if (this.showSelectMenu) {
-        type.splice(1, 1, themeType(this.type || 'primary', 'bd', this.lightStyle))
-      }
-      return [...type, ...cls, focus]
-    },
-
-    themeColor () {
-      return this.showSelectMenu ? COLORS[this.type] || '#bfbfbf' : '#bfbfbf'
-    },
-
-    model: {
+  setup (props, ctx) {
+    const showSelectMenu = ref(false)
+    const defaultValue = ref('')
+    const model = computed({
       get () {
-        return this.modelValue
+        return isNull(props.modelValue) ? defaultValue.value : props.modelValue
       },
 
       set (val) {
-        if (!val && Array.isArray(this.modelValue)) {
-          this.$emit('update:modelValue', [])
-        } else { this.$emit('update:modelValue', val) }
+        if (!isNull(props.modelValue)) { ctx.emit('update:modelValue', val) } else { defaultValue.value = val }
       }
-    },
+    })
+    const labels = ref(new Map())
+    provide('XlSelect', reactive({
+      model: model,
+      multiSelect: props.multiSelect,
+      update: (nv) => {
+        model.value = nv
+      },
+      addLabel: (value, label) => {
+        labels.value.set(value, label)
+      },
+      closeSelect: () => { // 关闭下拉框
+        showSelectMenu.value = false
+      },
+      afterSelect: (selected, selectItem) => {
+        ctx.emit('after-select', selected, selectItem)
+      }
+    }))
+    provide('XlPopperTrigger', reactive({
+      dom: () => {
+        return select.value
+      }
+    }))
 
-    selected () {
-      if (Array.isArray(this.model)) {
-        if (this.multiSelect) {
-          return this.model.join(',')
+    const classes = computed(() => {
+      const cls = props.popClass || []
+      const type = InputThemeType(props.type || 'primary', props.lightStyle)
+      if (showSelectMenu.value) {
+        type.splice(1, 1, themeType(props.type || 'primary', 'bd', props.lightStyle))
+      }
+      return [...type, ...cls]
+    })
+
+    const themeColor = computed(() => {
+      return showSelectMenu.value ? COLORS[props.type] || '#bfbfbf' : '#bfbfbf'
+    })
+
+    const selected = computed(() => {
+      if (Array.isArray(model.value)) {
+        if (props.multiSelect) {
+          const label = model.value.map(e => {
+            return labels.value.get(e) || e
+          })
+          return label.join(',')
         } else {
-          return this.model
+          return labels.value.get(model.value[0]) || model.value[0]
         }
       } else {
-        return this.model
+        return labels.value.get(model.value) || model.value
       }
-    },
+    })
 
-    // style () {
-    //   const style = this.outerStyle || {}
-    //   if (this.width !== 0) {
-    //     style.width = this.widthC
-    //   }
-    //   if (this.height !== 0) {
-    //     style.height = this.heightC
-    //   }
-    //   if (this.size === 'small') {
-    //     style.height = '30px'
-    //     style.width = '255px'
-    //   }
-    //   return style
-    // },
-
-    styleInner () {
-      const style = { ...this.popStyle }
-      if (this.size === 'small') {
+    const styleInner = computed(() => {
+      const style = { ...props.popStyle }
+      if (props.size === 'small') {
         style.height = '30px'
         style.width = '255px'
+      } else if (props.size === 'large') {
+        style.height = '60px'
+        style.width = '400px'
       } else {
-        if (this.width !== 0) {
-          style.width = this.widthC
+        const { widthC, heightC } = size(props)
+        if (props.width !== 0) {
+          style.width = widthC.value
         }
-        if (this.height !== 0) {
-          style.height = this.heightC
+        if (props.height !== 0) {
+          style.height = heightC.value
         }
       }
       // if(this.lightStyle){style.opacity="0.5"}
       return style
-    },
+    })
 
-    arrowSize () {
-      if (this.size === 'small') {
-        return 20
+    const arrowSize = computed(() => {
+      if (props.size === 'small') {
+        return 10
       }
-      return this.height / 4
-    }
-  },
+      return props.height / 4
+    })
 
-  watch: {
-    showSelectMenu (nv) {
+    const showList = () => {
+      showSelectMenu.value = !showSelectMenu.value
+    }
+    const popper = ref(null)
+    const closeSelect = (e) => {
+      if (!popper.value?.contains(e.target)) {
+        showSelectMenu.value = false
+      }
+    }
+
+    const select = ref(null)
+    watch(() => showSelectMenu, (nv) => {
       if (nv) {
-        this.$refs.select.focus()
+        select.value.focus()
       }
-    }
-  },
+    })
 
-  methods: {
-    showList () {
-      this.showSelectMenu = !this.showSelectMenu
-    },
-
-    closeSelect () {
-      if (this.showSelectMenu === false) {
-        return
+    const containerStyle = computed(() => {
+      const style = {}
+      if (props.inline) {
+        style.display = 'inline-block'
       }
-      this.showSelectMenu = false
+      return style
+    })
+
+    return {
+      showSelectMenu,
+      model,
+      classes,
+      themeColor,
+      selected,
+      styleInner,
+      arrowSize,
+      showList,
+      closeSelect,
+      select,
+      popper,
+      containerStyle
     }
   }
 }
 </script>
 
 <style lang="less">
-// @import '../../styles/transition.less';
 .XlSelect{
-  display: inline-block;
   position: relative;
   >.xl-select-label{
     display: flex;
@@ -259,6 +266,8 @@ export default {
     border-radius: 3px;
       >.selected{
         text-indent: 1em;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       >.placeholder{
         text-indent: 1em;

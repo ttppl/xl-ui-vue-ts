@@ -48,7 +48,7 @@ export default {
 
   emits: ['update:modelValue'],
 
-  data () {
+  setup () {
     return {
       showPanel: false,
       timer: null,

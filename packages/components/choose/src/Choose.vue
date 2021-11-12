@@ -1,30 +1,32 @@
 <template>
-  <div class="XlChoose">
-    <input :id="serialID" ref="choose" v-model="model" hidden :checked="isCheck" :value="value" :type="inputType" :name="nameC" @click="change">
-    <label v-if="labelPosition=='left'" :for="serialID" @click="labelClicked">
-      <div class="label-left pointer">
-        <slot>{{ label||value }}</slot>
-      </div>
-      <div :class="iconClass" class="check-icon pointer"><div class="icon-inner" :class="iconInnerClass" /></div>
+  <div ref="xlchoose" class="XlChoose" :checked="isCheck" :show-icon="attrs.showIcon" :class="{'inline-choose':attrs.inline}">
+    <input :id="serialID" ref="choose" v-model="model" hidden :checked="isCheck"
+           :value="value" :type="attrs.type" :name="nameC" @click="change">
+    <label v-if="attrs.labelPosition=='left'" class="label" :disabled="isDisable" :for="serialID" @click="labelClicked">
+      <slot><div class="label-left pointer">{{ label||value }}</div></slot>
+      <div v-if="attrs.showIcon" :class="iconClass" class="check-icon-right pointer"><div class="icon-inner" :class="iconInnerClass" /></div>
     </label>
-    <label v-if="labelPosition=='right'" :for="serialID" @click="labelClicked">
-      <div :class="iconClass" class="check-icon pointer"><div class="icon-inner" :class="iconInnerClass" /></div>
-      <div class="label-right pointer"><slot>{{ label||value }}</slot></div>
+    <label v-if="attrs.labelPosition=='right'" class="label" :disabled="isDisable" :for="serialID" @click="labelClicked">
+      <div v-if="attrs.showIcon" :class="iconClass" class="check-icon-left pointer"><div class="icon-inner" :class="iconInnerClass" /></div>
+      <slot><div class="label-right pointer">{{ label||value }}</div></slot>
     </label>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
+import { computed, ref } from '@vue/reactivity'
 import { themeType } from '../../../types'
+import { inject, nextTick, onBeforeMount, onMounted, watch } from '@vue/runtime-core'
+import { isFunction } from '@/utils/common'
+import props from './props'
+import useProps from './useProps'
 export default {
   name: 'XlChoose',
 
-  inject: ['chooseGroup'],
-
   props: {
-    labelPosition: {
-      type: String,
-      default: 'right'
+    modelValue: {
+      type: [String, Number, Boolean, Array],
+      default: ''
     },
 
     label: {
@@ -32,155 +34,180 @@ export default {
       default: ''
     },
 
-    iconType: {
-      type: String,
-      default: 'checkbox'
-    },
-
-    iconStyleType: {
-      type: String,
-      default: 'primary'
-    },
-
-    lightStyle: Boolean,
-
     name: {
       type: String,
       default: ''
     },
 
     value: {
-      type: String,
-      default: 'value'
-    },
-
-    type: {
-      type: String,
-      default: 'radio'
-    },
-
-    modelValue: {
-      type: [String, Array],
+      type: [String, Number, Boolean],
       default: ''
-    }
-  },
-
-  emits: ['update:modelValue', 'label-click'],
-  data () {
-    return {
-      serialID: ''// 默认生成的name，唯一标识
-    }
-  },
-
-  computed: {
-
-    isGroup () {
-      return this.chooseGroup
     },
 
-    model: {
+    checked: Boolean,
+
+    disabled: Boolean,
+
+    ...props
+  },
+
+  emits: ['update:modelValue', 'label-click', 'change'],
+  setup (props, ctx) {
+    const chooseGroup = inject('chooseGroup')
+    const { isGroup, attrs } = useProps(chooseGroup, props)
+    const model = computed({
       get () {
-        return this.isGroup ? this.chooseGroup.modelValue.value : this.modelValue
+        const val = isGroup.value ? chooseGroup.model : props.modelValue
+        if (attrs.value.type === 'checkbox') {
+          return Array.isArray(val) ? val : (val ? [val] : [])
+        } else {
+          return Array.isArray(val) ? val[0] : val
+        }
       },
 
       set (val) {
-        this.isGroup ? this.chooseGroup.modelValue.value = val : this.$emit('update:modelValue', val)
-        this.$refs.choose && (this.$refs.choose.checked = this.isCheck)
+        console.log(val)
+        isGroup.value ? chooseGroup.update(val) : ctx.emit('update:modelValue', val)
       }
-    },
-
-    inputType () {
-      return this.isGroup ? this.chooseGroup.type : this.type
-    },
-
-    isCheck () {
-      if ((this.isGroup ? this.chooseGroup.type : this.type) === 'checkbox') {
-        return Array.isArray(this.model) ? this.model.includes(this.value) : this.model === this.value
+    })
+    watch(() => model.value, (nv) => { // change事件
+      ctx.emit('change', nv)
+      isGroup.value && chooseGroup.change(nv)
+    })
+    onMounted(() => {
+      if (props.checked) {
+        if (attrs.value.type === 'checkbox' && Array.isArray(model.value) && !model.value.includes(props.value)) {
+          model.value.push(props.value)
+          // 重新赋值model触发set函数
+          const t = model.value
+          model.value = t
+        } else { model.value = props.value }
       }
-      return this.model === this.value
-    },
+    })
+    const isCheck = computed(() => {
+      // if (props.checked) return true
+      if (attrs.value.type === 'checkbox' && Array.isArray(model.value)) {
+        return model.value.includes(props.value)
+      } else { return model.value === props.value }
+    })
+    const choose = ref(null)
+    // 监听类型的改变
+    const xlchoose = ref(null)
+    watch(() => isCheck.value, (nv) => {
+      if (nv) {
+        nextTick().then(() => {
+          choose.value.checked = true
+          xlchoose.value.setAttribute('checked', true)
+        })
+      } else {
+        nextTick().then(() => {
+          xlchoose.value.removeAttribute('checked')
+        })
+      }
+    }, { immediate: true })
 
-    checkIcon () {
-      return this.isGroup ? this.chooseGroup.iconType : this.iconType
-    },
+    // 生成唯一标识
+    function genID (length) {
+      return Number(Math.random().toString().substr(3, length) + Date.now()).toString(36)
+    }
+    const serialID = ref(genID())// 默认生成的name，唯一标识
 
-    iconStyle () {
-      return this.chooseGroup.iconStyleType || this.iconStyleType
-    },
+    // // 初始化model值
+    // if (attrs.value.type === 'radio') {
+    //   model.value = Array.isArray(model.value) ? (model.value[0] || '') : model.value
+    // }
+    // if (attrs.value.type === 'checkbox') {
+    //   model.value = Array.isArray(model.value) ? model.value : model.value ? [model.value] : []
+    // }
 
-    light () {
-      return this.chooseGroup.lightStyle || this.lightStyle
-    },
-
-    iconClass () {
+    const iconClass = computed(() => {
       const checkbox = []
-      if (this.checkIcon === 'checkbox') {
+      if (attrs.value.iconType === 'checkbox') {
         checkbox.push('checkbox-icon')
-        checkbox.push(this.isCheck ? themeType(this.iconStyle, 'bd') : themeType('notice', 'bd'))
-        checkbox.push(themeType(this.iconStyle, 'bd-hover'))
+        checkbox.push(isCheck.value ? themeType(attrs.value.iconStyleType, 'bd') : themeType('notice', 'bd'))
+        if (!isDisable.value) { checkbox.push(themeType(attrs.value.iconStyleType, 'bd-hover')) }
       }
       const radio = []
-      if (this.checkIcon === 'radio') {
+      if (attrs.value.iconType === 'radio') {
         radio.push('radio-icon')
-        radio.push(this.isCheck ? themeType(this.iconStyle, 'bd') : themeType('notice', 'bd'))
-        radio.push(themeType(this.iconStyle, 'bd-hover'))
+        radio.push(isCheck.value ? themeType(attrs.value.iconStyleType, 'bd') : themeType('notice', 'bd'))
+        if (!isDisable.value) { radio.push(themeType(attrs.value.iconStyleType, 'bd-hover')) }
       }
       let theme = ''
-      if (this.isCheck) {
-        if (this.checkIcon === 'checkbox') { theme = themeType(this.iconStyle, 'bg', this.light) }
-        if (this.checkIcon === 'radio') { theme = themeType(this.iconStyle, 'bg-bd', this.light) }
+      if (isCheck.value) {
+        if (attrs.value.iconType === 'checkbox') { theme = themeType(attrs.value.iconStyleType, 'bg', attrs.value.lightStyle) }
+        if (attrs.value.iconType === 'radio') { theme = themeType(attrs.value.iconStyleType, 'bg-bd', attrs.value.lightStyle) }
       }
       return [...checkbox, ...radio, theme]
-    },
+    })
 
-    iconInnerClass () {
+    const iconInnerClass = computed(() => {
       let theme = ''
-      if (this.checkIcon === 'radio') { theme = themeType(this.iconStyle, 'bg', this.light) }
+      if (attrs.value.iconType === 'radio') { theme = themeType(attrs.value.iconStyleType, 'bg', attrs.value.lightStyle) }
       return theme
-    },
+    })
 
-    nameC () {
-      return this.name || (this.isGroup ? this.chooseGroup.serialID : this.serialID)
-    }
-  },
+    const nameC = computed(() => {
+      return props.name || (isGroup.value ? chooseGroup.serialID : serialID.value)
+    })
 
-  watch: {
-  },
-
-  created () {
-    this.serialID = this.genID()
-    if (this.inputType === 'radio') {
-      this.model = Array.isArray(this.model) ? (this.model[0] || '') : this.model
-    }
-    if (this.inputType === 'checkbox') {
-      this.model = Array.isArray(this.model) ? this.model : [this.model]
-    }
-  },
-
-  methods: {
-    genID (length) {
-      return Number(Math.random().toString().substr(3, length) + Date.now()).toString(36)
-    },
-
-    change () {
-      if (this.model === this.value) {
-        this.model = ''
+    function change () { // radio可取消
+      if (attrs.value.enableCancle && attrs.value.type === 'radio' && model.value === props.value) {
+        if (isFunction(attrs.value.enableCancle)) {
+          model.value = props.enableCancle()
+        } else { model.value = '' }
       }
-    },
+    }
 
-    labelClicked (e) {
-      this.$emit('label-click', e)
+    function labelClicked (e) {
+      if (isDisable.value) { // 禁用不能被选择
+        e.preventDefault()
+      }
+      ctx.emit('label-click', { model: model.value, value: props.value, event: e })
+      isGroup.value && chooseGroup.labelClicked({ model: model.value, value: props.value, event: e })
+    }
+
+    const isDisable = computed(() => {
+      if (props.disabled) {
+        return true
+      } else if (!isCheck.value && (attrs.value.type === 'checkbox' && attrs.value.max >= 0 && model.value.length >= attrs.value.max)) {
+        return true
+      } else {
+        return false
+      }
+    })
+    return {
+      serialID,
+      choose,
+      xlchoose,
+      model,
+      nameC,
+      attrs,
+      iconClass,
+      iconInnerClass,
+      change,
+      labelClicked,
+      isCheck,
+      isDisable
     }
   }
 }
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 @gap:20px;
 .XlChoose{
   position: relative;
+  &[show-icon="true"]{
+    margin: 10px 0;
+  }
   label{
+    cursor: pointer;
     white-space:nowrap;
+    &[disabled="true"]{
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
     >*{
       display: inline-block;
       vertical-align: middle;
@@ -197,7 +224,7 @@ export default {
     display: inline-block;
     width: 15px;
     height:15px;
-    border-width: 0.5px;
+    border-width: 1px;
     border-style: solid;
     position: relative;
   }
@@ -219,7 +246,7 @@ export default {
     width: @size;
     height:@size;
     border-radius: @size;
-    border-width: 0.5px;
+    border-width: 1px;
     border-style: solid;
     position: relative;
 
@@ -233,6 +260,13 @@ export default {
     width: @innersize;
     height: @innersize;
     border-radius: @innersize;
+  }
+}
+.inline-choose{
+  display: inline-block;
+  &[show-icon="true"]{
+    padding-right: 20px;
+    box-sizing: border-box;
   }
 }
 </style>

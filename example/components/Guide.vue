@@ -5,7 +5,7 @@
     <div v-highlight class="example-code">
       <pre>
         <code v-codeFormat class="language-shell">
-          {{`\nnpm install xl-ui-vue -S`}}
+          {{ `\nnpm install xl-ui-vue -S` }}
         </code>
       </pre>
     </div>
@@ -13,12 +13,12 @@
     <div v-highlight class="example-code">
       <pre>
         <code v-codeFormat class="language-js">
-          {{`\nimport xlui from 'xl-ui-vue'
+          {{ `\nimport xlui from 'xl-ui-vue'
           \nimport 'xl-ui-vue/lib/xl-ui.css'
           \nimport { createApp } from 'vue'
           \nimport App from './App.vue'\n
           \nconst app = createApp(App)
-          \napp.use(xlui)`}}
+          \napp.use(xlui)` }}
         </code>
       </pre>
     </div>
@@ -26,6 +26,7 @@
 </template>
 
 <script type="text/ecmascript-6">
+import { ref } from '@vue/reactivity'
 export default {
   name: 'Guide',
 
@@ -38,7 +39,9 @@ export default {
   },
 
   setup () {
+    const test = ref(false)
     return {
+      test
     }
   }
 }

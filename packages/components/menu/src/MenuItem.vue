@@ -1,7 +1,7 @@
 <template>
-  <div class="XlMenuItem" @click="selectMenu" :class="classes" :style="style">
+  <div class="XlMenuItem" :class="classes" :style="style" @click="selectMenu">
     <slot>
-      {{label}}
+      {{ label }}
     </slot>
   </div>
 </template>
@@ -24,15 +24,18 @@ export default {
       type: String,
       default: ''
     },
+
     subMenu: Boolean,
     deep: {
       type: [String, Number],
       default: 0
     },
+
     index: {
       type: [String, Number],
       default: 0
     },
+
     to: {
       type: String,
       default: ''

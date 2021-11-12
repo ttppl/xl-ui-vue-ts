@@ -17,7 +17,7 @@ import { ref, reactive, provide, computed, toRef } from 'vue'
 import size from '@/mixins/size'
 import SubMenu from './SubMenu'
 import MenuItem from './MenuItem'
-import { getToRef } from '@/utils/PIutils'
+import { getToRef } from '@/utils/vmUtils'
 export default {
   name: 'XlMenu',
 

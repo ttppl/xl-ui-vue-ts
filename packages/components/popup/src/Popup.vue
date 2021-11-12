@@ -1,14 +1,17 @@
 <template>
-  <teleport to="body">
+  <teleport to="body" :disabled="diasbaleTobody">
     <transition :name="transition">
-      <div v-show="showPopup" ref="content" v-resize="{disable:type!=='dialog'}" class="xl-popup-content" :style="style" :class="classes">
-        <svg v-if="showClose" :style="{zIndex:zIndex+2}" class="xl-close-icon" t="1630307589611" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4768" width="20" height="20" @click="showPopup=false"><path d="M557.312 513.248l265.28-263.904c12.544-12.48 12.608-32.704 0.128-45.248-12.512-12.576-32.704-12.608-45.248-0.128l-265.344 263.936-263.04-263.84C236.64 191.584 216.384 191.52 203.84 204 191.328 216.48 191.296 236.736 203.776 249.28l262.976 263.776L201.6 776.8c-12.544 12.48-12.608 32.704-0.128 45.248 6.24 6.272 14.464 9.44 22.688 9.44 8.16 0 16.32-3.104 22.56-9.312l265.216-263.808 265.44 266.24c6.24 6.272 14.432 9.408 22.656 9.408 8.192 0 16.352-3.136 22.592-9.344 12.512-12.48 12.544-32.704 0.064-45.248L557.312 513.248z" p-id="4769" :fill="iconColor" /></svg>
-        <div v-drag="{childLevel:1,disable:type!=='dialog'}" class="xl-popup-content-title">
+      <div v-show="showPopup" ref="content" v-resize="{disable:type!=='dialog'||!resizable,geometric:resizable==='geometric',callback:mouseMoveCallback,transform:'offset'}" class="xl-popup" :style="style" :class="classes">
+        <Icon v-if="showClose" class="xl-close-icon" :pop-style="iconStyle" icon="close" @click.capture="closePop" />
+        <!-- title,dialog时渲染 -->
+        <div v-if="type==='dialog'" v-drag="{target:1,disable:type!=='dialog'||!draggable,callback:dragCallback,transform:false}" class="xl-popup-content-title">
           <slot name="title"><p v-if="title">{{ title }}</p></slot>
         </div>
-        <Scroll :show-scroll="showScroll" class="xl-popup-content-inner">
+        <!-- content -->
+        <Scroll ref="scroll" :width="1" :height="1" :show-scroll="showScroll" class="xl-popup-content-inner">
           <slot />
         </Scroll>
+        <!-- footer，dialog或者自定义footer时渲染 -->
         <div v-if="$slots.footer||type=='dialog'" class="xl-popup-content-footer">
           <slot name="footer">
             <div v-if="type=='dialog'" class="xl-popup-footer-buttons">
@@ -19,19 +22,23 @@
         </div>
       </div>
     </transition>
-    <div v-show="showPopup" class="xl-popup-mask" :style="{zIndex:zIndex}" :class="{'xl-mask':mask}" @click.capture="clickOutside" />
+    <div v-show="showPopup" class="xl-popup-mask" :style="{zIndex:maskZIndex}" :class="{'xl-mask':mask}" @click.capture="clickOutside" />
   </teleport>
 </template>
 
 <script type="text/ecmascript-6">
-import zIndexManager from '../../../utils/zIndexManager'
-import Scroll from '../../scroll'
-import whCompute from '../../../mixins/whCompute'
-import Button from '../../button'
-import dragHandler from '../../../utils/dragHandler'
-import resizeHandler from '../../../utils/resizeHandler'
-import { getElementSize, getWindowSize } from '../../../utils/dom'
-
+import zIndexManager from '@/utils/zIndexManager'
+import Scroll from '@/components/scroll'
+import Button from '@/components/button'
+import dragHandler from '@/directives/drag'
+import resizeHandler from '@/directives/resize'
+import { getElementSize, getWindowSize, on, off, hasScrollbar, getScrollWidth, getOffsetLeft, getOffsetTop } from '@/utils/dom'
+import { computed, reactive, ref } from '@vue/reactivity'
+import size from '@/mixins/size'
+import { nextTick, onBeforeUnmount, onMounted, watch } from '@vue/runtime-core'
+import Icon from '@/components/icon/src/Icon'
+import ResizeDetector from '@/utils/ResizeDetector'
+import { onece } from '@/utils/common'
 // v-clickoutside="closePop"
 const colors = {
   primary: '#409EFF',
@@ -47,15 +54,15 @@ export default {
 
   components: {
     Scroll,
-    Button
+    Button,
+    Icon
   },
 
   directives: { drag: dragHandler, resize: resizeHandler },
 
-  mixins: [whCompute],
-
   props: {
     modelValue: Boolean,
+    toBody: Boolean,
     direction: {
       type: String,
       default: 'center'
@@ -86,8 +93,18 @@ export default {
       default: 'drawer'
     },
 
-    showScroll: {
+    draggable: { // type为dialog时生效
       type: Boolean,
+      default: false
+    },
+
+    resizable: { // type为dialog时生效
+      type: [Boolean, String],
+      default: false
+    },
+
+    showScroll: {
+      type: [String, Boolean],
       default: true
     },
 
@@ -114,35 +131,40 @@ export default {
     title: {
       type: String,
       default: ''
+    },
+
+    width: {
+      type: [Number, String],
+      default: 200
+    },
+
+    height: {
+      type: [Number, String],
+      default: 100
     }
   },
 
   emits: ['update:modelValue'],
 
-  data () {
-    return {
-      zIndex: 100,
-      size: {},
-      windowSize: {}
-    }
-  },
+  setup (props, ctx) {
+    const maskZIndex = zIndexManager.nextIndex()
+    const popupZIndex = zIndexManager.nextIndex()
+    const closeIconZIndex = zIndexManager.nextIndex()
 
-  computed: {
-    showPopup: {
+    const showPopup = computed({
       get () {
-        return this.modelValue
+        return props.modelValue
       },
 
       set (nv) {
-        this.$emit('update:modelValue', nv)
+        ctx.emit('update:modelValue', nv)
       }
-    },
-
-    transition () {
-      if (this.type === 'dialog') {
-        return 'tst-popup-scale-center'
+    })
+    const transition = computed(() => {
+      if (props.type === 'dialog') {
+        return 'tst-scale-center'
       }
-      switch (this.direction) {
+      switch (props.direction) {
         case 'center':
           return 'tst-scale-center'
         case 'left':
@@ -156,125 +178,177 @@ export default {
         default:
           return 'tst-scale-center'
       }
-    },
-
-    classes () {
-      let classes = this.popClass || []
+    })
+    const classes = computed(() => {
+      let classes = props.popClass || []
       if (typeof classes === 'string') {
         classes = [classes]
       }
+      return [...classes, { 'xl-dialog': props.type === 'dialog' }]
+    })
+    const windows = reactive({
+      viewWidth: 0,
+      viewHeight: 0
+    })
+    const contentSize = ref({
+      width: 0,
+      height: 0
+    })
+    const getElementAttr = () => { // 获取window可视宽高
+      const size = getWindowSize()
+      windows.viewWidth = size.width
+      windows.viewHeight = size.height
+      // windows.viewWidth = document.documentElement.clientWidth
+      // windows.viewHeight = document.documentElement.clientHeight
+      contentSize.value = getElementSize(content.value, 'fixed')
+    }
 
-      const posClass = {
-        'xl-pos-center': this.direction === 'center',
-        'xl-pos-left': this.direction === 'left',
-        'xl-pos-right': this.direction === 'right',
-        'xl-pos-top': this.direction === 'top',
-        'xl-pos-bottom': this.direction === 'bottom',
-        'xl-dialog': this.type === 'dialog'
+    const content = ref(null)
+    const resizeDetector = new ResizeDetector({ console: false })
+    let resizer
+    onMounted(() => {
+      nextTick().then(getElementAttr)// 初始化执行获取
+      on(window, 'resize', getElementAttr)
+    })
+    onBeforeUnmount(() => {
+      off(window, 'resize', getElementAttr)
+      if (resizer) {
+        resizeDetector.removeListener(resizer)
       }
-      return [posClass, ...classes]
-    },
+    })
+    const onKeyPress = (e) => {
+      console.log('escape')
+      if (!props.closeOnPressEscape) return
+      if (e.code === 'Escape') {
+        e.stopPropagation()
+        closePop()
+      }
+    }
 
-    style () {
-      const style = { ...this.popStyle }
-      style.zIndex = this.zIndex + 1
-      if (this.type === 'dialog') {
+    const closePop = () => {
+      showPopup.value = false
+    }
+
+    const clickOutside = (e) => {
+      e.stopPropagation()
+      if (props.closeOnClickMask) {
+        closePop()
+      }
+    }
+
+    const diasbaleTobody = computed(() => {
+      // teleport disable会导致自定义指令unmount相关生命周期失效，所以diasable需恒为false
+      if (props.draggable || props.resizable) {
+        return false
+      }
+      return !props.toBody
+    })
+    let disableStyleForSize = false
+    const mouseMoveCallback = onece(() => {
+      // computed依赖未改变，需手动删除定位属性
+      delete style.value.left
+      delete style.value.top
+      disableStyleForSize = true
+    })
+    const dragCallback = onece(() => {
+      // computed依赖未改变，需手动删除定位属性
+      delete style.value.left
+      delete style.value.top
+      disableStyleForSize = true
+    })
+    const { widthC, heightC } = size(props)
+    const style = computed(() => {
+      const style = { ...props.popStyle }
+      style.zIndex = popupZIndex
+      if (props.type === 'dialog') {
+        if (!disableStyleForSize) {
+          style.left = `${windows.viewWidth / 2 - contentSize.value.width / 2}px`
+          style.top = `${windows.viewHeight / 2 - contentSize.value.height / 2}px`
+        }
         return style
       }
-      if (!style.width && this.width !== 0) {
-        style.width = this.widthC
+      if (!style.width && props.width !== 0) {
+        style.width = widthC.value
       }
-      if (!style.height && this.height !== 0) {
-        style.height = this.heightC
+      if (!style.height && props.height !== 0) {
+        style.height = heightC.value
       }
-      if (this.direction === 'center') {
-        style.left = `${this.windowSize.width / 2 - this.size.width / 2}px`
-        style.top = `${this.windowSize.height / 2 - this.size.height / 2}px`
+      if (props.direction === 'center') {
+        style.left = `${windows.viewWidth / 2 - contentSize.value.width / 2}px`
+        style.top = `${windows.viewHeight / 2 - contentSize.value.height / 2}px`
       }
-      if (this.direction === 'left') {
+      if (props.direction === 'left') {
         style.left = '0px'
-        style.top = `${this.windowSize.height / 2 - this.size.height / 2}px`
+        style.top = `${windows.viewHeight / 2 - contentSize.value.height / 2}px`
       }
-      if (this.direction === 'right') {
+      if (props.direction === 'right') {
         style.right = '0px'
-        style.top = `${this.windowSize.height / 2 - this.size.height / 2}px`
+        style.top = `${windows.viewHeight / 2 - contentSize.value.height / 2}px`
       }
-      if (this.direction === 'top') {
-        style.left = `${this.windowSize.width / 2 - this.size.width / 2}px`
+      if (props.direction === 'top') {
+        style.left = `${windows.viewWidth / 2 - contentSize.value.width / 2}px`
         style.top = '0px'
       }
-      if (this.direction === 'bottom') {
-        style.left = `${this.windowSize.width / 2 - this.size.width / 2}px`
+      if (props.direction === 'bottom') {
+        style.left = `${windows.viewWidth / 2 - contentSize.value.width / 2}px`
         style.bottom = '0px'
       }
       return style
-    },
-
-    iconColor () {
-      return colors[this.closeIcon] || '#bfbfbf'
-    }
-  },
-
-  watch: {
-    modelValue (nv) { // 控制scroll滑动
+    })
+    const iconStyle = computed(() => {
+      return {
+        zIndex: closeIconZIndex,
+        color: colors[props.closeIcon] || '#bfbfbf',
+        position: 'absolute',
+        top: '3px',
+        right: '5px'
+      }
+    })
+    const scroll = ref(null)
+    watch(() => props.modelValue, (nv) => {
       if (nv) {
-        if (this.lockScreen) {
-          if (document.body.scrollHeight > window.innerHeight) {
+        nextTick().then(scroll.value.initScroll)// 初始化Scroll
+        if (props.type === 'dialog' && props.resizable && props.resizable === 'geometric' && !resizer) { // 监听resize事件
+          nextTick().then(() => {
+            try {
+              resizer = resizeDetector.listenTo(content.value, getElementAttr)
+            } catch (e) {
+              console.log(e)
+            }
+          })
+        }
+        if (props.lockScreen) {
+          if (hasScrollbar()) {
             document.body.style.left = '0'
-            document.body.style.right = `${window.innerWidth - document.body.clientWidth}px`
+            document.body.style.right = `${getScrollWidth()}px`
             // document.getElementById('app').style.paddingRight = '100px'
           }
           document.body.style.overflow = 'hidden'
         }
-        if (this.closeOnPressEscape) { document.addEventListener('keydown', this.onKeyPress) }
+        if (props.closeOnPressEscape) { on(document, 'keydown', onKeyPress) }
       } else {
         document.body.style.right = '0'
         document.body.style.overflow = 'auto'
-        if (this.closeOnPressEscape) { document.removeEventListener('keydown', this.onKeyPress) }
+        if (props.closeOnPressEscape) { off(document, 'keydown', onKeyPress) }
       }
-    }
-  },
-
-  created () {
-    this.zIndex = zIndexManager.nextIndex()// 初始化层级，mask
-    zIndexManager.nextIndex()// popup层级
-    zIndexManager.nextIndex()// close图标层级
-    // this.getWindowSize()
-    this.windowSize = getWindowSize()
-  },
-
-  mounted () {
-    this.size = getElementSize(this.$refs.content)
-    window.addEventListener('resize', this.getWindowSize)
-  },
-
-  unmounted () {
-    window.removeEventListener('resize', this.getWindowSize)
-  },
-
-  methods: {
-    getWindowSize () {
-      this.windowSize = getWindowSize()
-    },
-
-    onKeyPress (e) {
-      console.log('escape')
-      if (!this.closeOnPressEscape) return
-      if (e.code === 'Escape') {
-        e.stopPropagation()
-        this.closePop()
-      }
-    },
-
-    closePop () {
-      this.showPopup = false
-    },
-
-    clickOutside (e) {
-      e.stopPropagation()
-      if (this.closeOnClickMask) {
-        this.closePop()
-      }
+    })
+    return {
+      maskZIndex,
+      // ref
+      content,
+      scroll,
+      // compute
+      showPopup,
+      diasbaleTobody,
+      transition,
+      style,
+      classes,
+      iconStyle,
+      // method
+      closePop,
+      clickOutside,
+      mouseMoveCallback,
+      dragCallback
     }
   }
 }
@@ -283,8 +357,6 @@ export default {
 <style lang="less">
 // @import '../../styles/transition.less';
 .xl-mask{
-  width: 100%;
-  height: 100%;
   background:rgba(0, 0, 0, 0.4);
 }
 .xl-popup-mask{
@@ -294,28 +366,23 @@ export default {
   width: 100%;
   height: 100%;
 }
-.xl-popup-content{
+.xl-popup{
   position: fixed;
-  min-width: 20%;
-  min-height: 20%;
   opacity: 1;
-  // display: flex;
-  // flex-direction: column;
-  // justify-content: space-between;
-  // align-items: stretch;
-  .xl-popup-content-inner{
-    padding : 0 8px;
-  }
-  .xl-popup-content-title{
+  background-color: white;
+  padding : 0 4px;
+  box-sizing: border-box;
+  >.xl-popup-content-title{
     font-size: 18px;
     font-family: Arial;
     font-weight: 700;
     color: black;
     text-align: center;
   }
-  .xl-popup-content-footer{
+
+  >.xl-popup-content-footer{
     padding: 20px 0;
-    .xl-popup-footer-buttons{
+    >.xl-popup-footer-buttons{
       -webkit-display:flex;
       -ms-display:flex;
       display:flex;
@@ -324,66 +391,38 @@ export default {
       -ms-justify-content: space-around;
     }
   }
-
-  overflow: hidden;
-  >.xl-close-icon{
-    cursor: pointer;
-    position: absolute;
-    top:3px;
-    right:5px;
-  }
-  >.content-default{
-    background-color: white;
-  }
-
 }
 
-.xl-pos-left{
-  height:100%;
-  width: 30%;
-  min-width: 20%;
-}
-.xl-pos-right{
-  height:100%;
-  width: 30%;
-  min-width: 20%;
-}
-.xl-pos-top{
-  width:100%;
-  height:30%;
-  min-height: 20%;
-}
-.xl-pos-bottom{
-  width:100%;
-  height:30%;
-  min-height: 20%;
-}
 .xl-dialog{
-  left:50%;
-  top:50%;
-  transform: translate(-50%,-50%);
+  // left:50%;
+  // top:50%;
+  // transform: translate(-50%,-50%);
   min-width: 400px;
   min-height: 200px;
   border-radius: 5px;
   background: #FFFFFF;
   box-shadow: 0px 4px 27px 0px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
 }
 
-.tst-popup-scale-center-enter-active,
-.tst-popup-scale-center-leave-active {
-  opacity: 1;
-  -webkit-transform: translate(-50%,-50%) scale(1,1) !important;
-  transform: translate(-50%,-50%) scale(1,1) !important;
-  -webkit-transition: opacity 300ms cubic-bezier(0.23, 1, 0.32, 1), -webkit-transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
-  transition: opacity 300ms cubic-bezier(0.23, 1, 0.32, 1), -webkit-transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
-  transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1), opacity 300ms cubic-bezier(0.23, 1, 0.32, 1);
-  transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1), opacity 300ms cubic-bezier(0.23, 1, 0.32, 1), -webkit-transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
-}
+// .tst-popup-scale-center-enter-active,
+// .tst-popup-scale-center-leave-active {
+//   opacity: 1;
+//   -webkit-transform: translate(-50%,-50%) scale(1,1) !important;
+//   transform: translate(-50%,-50%) scale(1,1) !important;
+//   -webkit-transition: opacity 300ms cubic-bezier(0.23, 1, 0.32, 1), -webkit-transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
+//   transition: opacity 300ms cubic-bezier(0.23, 1, 0.32, 1), -webkit-transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
+//   transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1), opacity 300ms cubic-bezier(0.23, 1, 0.32, 1);
+//   transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1), opacity 300ms cubic-bezier(0.23, 1, 0.32, 1), -webkit-transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
+// }
 
-.tst-popup-scale-center-enter-from,
-.tst-popup-scale-center-leave-to {
-  opacity: 0;
-  -webkit-transform: translate(-50%,-50%) scale(0,0) !important;
-  transform: translate(-50%,-50%) scale(0,0) !important;
-}
+// .tst-popup-scale-center-enter-from,
+// .tst-popup-scale-center-leave-to {
+//   opacity: 0;
+//   -webkit-transform: translate(-50%,-50%) scale(0,0) !important;
+//   transform: translate(-50%,-50%) scale(0,0) !important;
+// }
 </style>

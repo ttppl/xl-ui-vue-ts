@@ -5,8 +5,8 @@ import hljs from 'highlight.min.js'
 import '@/styles'
 import ExampleForm from './components/ExampleForm.vue'
 import AttrTable from './components/AttrTable.vue'
-// import xlui from 'xl-ui-vue3'
-
+import EventTable from './components/EventTable.vue'
+import all from '@/index'
 const app = createApp(App)
 
 app.use(router)
@@ -23,6 +23,7 @@ locales.keys().forEach(key => {
 })
 app.component('ExampleForm', ExampleForm)
 app.component('AttrTable', AttrTable)
+app.component('EventTable', EventTable)
 
 app.directive('highlight', function (el) {
   hljs.configure({ useBR: true })
@@ -33,10 +34,10 @@ app.directive('highlight', function (el) {
 })
 
 app.directive('codeFormat', function (el) {
-  const code = el.innerHTML
-  el.innerHTML = code.replace(/[ ]+\n/g, '')
+  // const code = el.innerHTML
+  // el.innerHTML = code.replace(/[ ]+\n/g, '')
 })
-app.config.unwrapInjectedRef = true
+// app.config.unwrapInjectedRef = false
 app.config.warnHandler = function () {
   // `trace` 是组件的继承关系追踪
 }
@@ -45,3 +46,5 @@ app.config.warnHandler = function () {
 app.config.globalProperties.logo = require('~/assets/logo.png')
 
 app.mount('#app')
+
+console.log(all)

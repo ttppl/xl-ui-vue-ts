@@ -6,27 +6,43 @@ const dataView = [
       keepAlive: false
     },
     components: {
-      main: () => import('~/components/Tag.vue')
+      main: () => import('~/components/tag/Tag.vue')
     }
-  },
-  {
+  }, {
     path: '/scroll',
     name: 'scroll',
     meta: {
       keepAlive: false
     },
     components: {
-      main: () => import('~/components/Scroll.vue')
+      main: () => import('~/components/scroll/Scroll.vue')
     }
-  },
-  {
+  }, {
     path: '/popover',
     name: 'popover',
     meta: {
       keepAlive: false
     },
     components: {
-      main: () => import('~/components/Popover.vue')
+      main: () => import('~/components/popover/Popover.vue')
+    }
+  }, {
+    path: '/popup',
+    name: 'popup',
+    meta: {
+      keepAlive: false
+    },
+    components: {
+      main: () => import('~/components/popup/Popup.vue')
+    }
+  }, {
+    path: '/card',
+    name: 'card',
+    meta: {
+      keepAlive: false
+    },
+    components: {
+      main: () => import('~/components/card/Card.vue')
     }
   }
 ]

@@ -6,7 +6,7 @@ const form = [
       keepAlive: false
     },
     components: {
-      main: () => import('~/components/Category.vue')
+      main: () => import('~/components/category/Category.vue')
     }
   }
 ]

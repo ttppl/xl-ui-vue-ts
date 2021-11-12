@@ -1,7 +1,7 @@
 <template>
   <Table column-height="30" type="notice" :keep-inline="false" distinguish-row :data-list="attrs"
-          text-align="left" :pop-data-style="dataStyle" :popHeaderStyle="headerStyle" :border='false'>
-    <TableColumn :width="column.width" v-for="column in columns" :key="'column'-column.name" :label="column.label" :column-name="column.name"></TableColumn>
+         text-align="left" :pop-data-style="dataStyle" :pop-header-style="headerStyle" :border="false">
+    <TableColumn v-for="column in columns" :key="'column'-column.name" :width="column.width" :label="column.label" :column-name="column.name" />
   </Table>
 </template>
 
@@ -57,7 +57,7 @@ export default {
       height: '40px'
     }
     const dataStyle = {
-      borderBottom: '0.5px solid rgb(218, 218, 218)'
+      borderBottom: '1px solid rgb(218, 218, 218)'
     }
     return {
       columns,

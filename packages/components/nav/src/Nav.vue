@@ -1,16 +1,16 @@
 <template>
   <div class="XlNav">
-    <div class="nav-bar" v-if="hide" :style="navBarStyle">
-      <Icon :class="{'icon-rotate':position=='left'}" :size="30" cursor="pointer" @click="popNav=!popNav" icon="menu" :type="theme"></Icon>
+    <div v-if="hide" class="nav-bar" :style="navBarStyle">
+      <Icon :class="{'icon-rotate':position=='left'}" :size="30" icon="menu" :type="theme" @click="popNav=!popNav" />
     </div>
-    <div v-else class="slide-bar" :style="navStyle">
-      <slot name="nav" ></slot>
+    <div v-else class="slide-bar" :divided="divided" :style="navStyle">
+      <Scroll height="1" show-onhover :pop-bar-style="{opacity:'0.4'}"><slot name="nav" /></Scroll>
     </div>
     <div class="content" :style="contentStyle">
-      <slot></slot>
+      <slot />
     </div>
-    <Popup v-model="popNav" :width="0.6" :direction="position" :popStyle="{backgroundColor:'white'}">
-      <slot name="nav" ></slot>
+    <Popup v-model="popNav" :width="0.5" :height="1" :direction="position">
+      <slot name="nav" />
     </Popup>
   </div>
 </template>
@@ -19,9 +19,10 @@
 import { ref, reactive, computed, onUnmounted } from 'vue'
 import size from '@/mixins/size'
 import { on, off } from '@/utils/dom'
-import { debounce } from '@/utils/utils'
+import { debounce } from '@/utils/common'
 import Icon from '@/components/icon/src/Icon'
 import Popup from '@/components/popup/src/Popup'
+import Scroll from '@/components/scroll'
 import { zIndexManager } from '@/utils/zIndexManager'
 export default {
   name: 'XlNav',
@@ -30,7 +31,8 @@ export default {
 
   components: {
     Icon,
-    Popup
+    Popup,
+    Scroll
   },
 
   props: {
@@ -38,18 +40,23 @@ export default {
       type: String,
       default: 'slideBar'
     },
+
     theme: {
       type: String,
       default: 'notice'
     },
+
     position: {
       type: String,
       default: 'left'
     },
+
     width: {
       type: [Number, String],
       default: 100
-    }
+    },
+
+    divided: Boolean// 分割线
   },
 
   setup (props, ctx) {
@@ -82,10 +89,11 @@ export default {
     onUnmounted(() => {
       off(window, 'resize', isHide)
     })
+    const index = zIndexManager.nextIndex()
     const navBarStyle = computed(() => {
       const style = {
         textAlign: props.position,
-        zIndex: zIndexManager.max
+        zIndex: index
       }
       return style
     })
@@ -121,6 +129,12 @@ export default {
   }
   .slide-bar{
     position: fixed;
+    height:100%;
+    width:25%;
+    &[divided="true"]{
+      border-right: 1px solid #EBEEF5;
+      padding-right: 5px;
+    }
   }
 }
 </style>

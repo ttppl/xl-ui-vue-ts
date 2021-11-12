@@ -1,12 +1,15 @@
 <template>
-  <div class="XlChooseGroup">
+  <div class="XlChooseGroup" :class="{'inline-choose-group':inline}">
     <slot />
   </div>
 </template>
 
 <script type="text/ecmascript-6">
 // import { reactive, defineComponent } from 'vue'
-import { defineComponent, computed, provide } from 'vue'
+import { isNull } from '@/utils/common'
+import { getToRef } from '@/utils/vmUtils'
+import { defineComponent, computed, provide, ref, reactive, toRef, toRefs, watch } from 'vue'
+import props from './props'
 export default defineComponent({
   name: 'XlChooseGroup',
 
@@ -15,57 +18,49 @@ export default defineComponent({
 
   props: {
     modelValue: {
-      type: [String, Array],
-      default: ''
+      type: [String, Number, Boolean, Array],
+      default: null
     },
 
-    iconType: {
-      type: String,
-      default: 'checkbox'
-    },
-
-    iconStyleType: {
-      type: String,
-      default: 'primary'
-    },
-
-    lightStyle: Boolean,
-
-    type: {
-      type: String,
-      default: 'radio'
-    }
+    ...props
   },
 
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'label-click', 'change'],
 
   setup (props, ctx) {
-    const update = value => {
-      ctx.emit('update:modelValue', value)
-    }
-
     const genID = (length) => {
       return Number(Math.random().toString().substr(3, length) + Date.now()).toString(36)
     }
-
-    const modelValue = computed({
+    const localValue = ref('')
+    const model = computed({
       get () {
-        return props.modelValue
+        return isNull(props.modelValue) ? localValue.value : props.modelValue
       },
       set (val) {
-        update(val)
+        if (isNull(props.modelValue)) {
+          localValue.value = val
+        } else { ctx.emit('update:modelValue', val) }
       }
     })
-
-    provide('chooseGroup', {
+    function update (value) {
+      model.value = value
+    }
+    function labelClicked (args) {
+      ctx.emit('label-click', args)
+    }
+    function change (nv) {
+      ctx.emit('change', nv)
+    }
+    provide('chooseGroup', reactive({
       name: 'chooseGroup',
-      modelValue,
-      iconType: props.iconType,
-      iconStyleType: props.iconStyleType,
-      lightStyle: props.lightStyle,
-      type: props.type,
+      model,
+      update,
+      change,
+      labelClicked,
+      ...toRefs(props),
+      // ...getToRef(props, 'iconType', 'iconStyleType', 'lightStyle', 'type', 'labelPosition', 'enableCancle', 'inline'),
       serialID: genID()
-    })
+    }))
 
     // watch(() => props.modelValue, val => {
     //   console.log(val)
@@ -73,3 +68,9 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped lang="less">
+.inline-choose-group{
+  display: inline-block;
+}
+</style>

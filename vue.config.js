@@ -246,7 +246,10 @@ module.exports = {
       config.mode = 'development'
     }
     config.externals = {
-      'highlight.min.js': 'hljs'
+      'highlight.min.js': 'hljs',
+      'beautify.js': 'beautify.js',
+      'beautify-css.js': 'beautify-css.js',
+      'beautify-html.js': 'beautify-html.js'
     }
   },
 

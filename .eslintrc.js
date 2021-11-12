@@ -119,7 +119,7 @@ module.exports = {
     'vue/no-textarea-mustache': 'warn',
     'vue/no-this-in-before-route-enter': 'warn',
     'vue/no-unregistered-components': ['warn', {
-      ignorePatterns: ['router-view','router-link','AttrTable','ExampleForm', 'xl(\\-\\w+)+','Xl(\\w+)+']
+      ignorePatterns: ['router-view','router-link','AttrTable','EventTable','ExampleForm', 'xl(\\-\\w+)+','Xl(\\w+)+']
     }],
     'vue/no-unsupported-features': 'warn',
     'vue/no-unused-components': 'warn',

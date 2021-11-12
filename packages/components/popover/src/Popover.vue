@@ -1,9 +1,10 @@
 <template>
-  <div ref="popover" v-clickoutside="closePopOutSide" class="XlPopover" :class="{'xl-inline-block':inline}" @[popTrigger]="showPop" @mouseleave="mouseleave">
+  <div ref="popover" v-clickoutside="closePopOutSide" class="XlPopover" :class="{'xl-inline-block':inline}"
+       @[popTrigger]="showPop" @mouseleave="mouseleave">
     <slot name="reference" />{{}}
     <popper ref="popper" v-model="model" :position="position" :show-arrow="showArrow" :offset="offset" :offset-parent="offsetParent"
-            :width="width" :height="height" :pop-style="popStyle"
-            :always-given-position="alwaysGivenPosition" :always-in-view="alwaysInView"
+            :width="width" :height="height" :min-width="minWidth" :min-height="minHeight" :max-width="maxWidth" :max-height="maxHeight"
+            :pop-style="popStyle" :to-body="toBody"
             @mouseenter="mouseenter" @mouseleave="mouseleave"
             @close="model = false">
       <slot />
@@ -12,7 +13,7 @@
 </template>
 
 <script type="text/ecmascript-6">
-import clickoutside from '../../../utils/clickouside'
+import clickoutside from '@/directives/clickOutside'
 import popper from './Popper'
 import { computed, provide, reactive, ref } from 'vue'
 export default {
@@ -26,12 +27,33 @@ export default {
   props: {
     modelValue: Boolean,
     inline: Boolean,
+    toBody: Boolean,
     width: {
       type: [Number, String],
       default: 0
     },
 
     height: {
+      type: [Number, String],
+      default: 0
+    },
+
+    minWidth: {
+      type: [Number, String],
+      default: 0
+    },
+
+    minHeight: {
+      type: [Number, String],
+      default: 0
+    },
+
+    maxWidth: {
+      type: [Number, String],
+      default: 0
+    },
+
+    maxHeight: {
       type: [Number, String],
       default: 0
     },
@@ -68,7 +90,10 @@ export default {
 
     alwaysGivenPosition: Boolean, // 强制位置显示
 
-    alwaysInView: Boolean// 总是在窗口内
+    alwaysInView: { // 总是在窗口内
+      type: Boolean,
+      default: true
+    }
   },
 
   emits: ['update:modelValue'],
@@ -102,13 +127,15 @@ export default {
       }
       return props.trigger
     })
-    const showPop = () => {
-      model.value = !model.value
+    const showPop = (e) => {
+      if (model.value && props.trigger !== 'hover' && !props.toBody) {
+        model.value = popper.value?.contains(e.target)
+      } else if (props.trigger === 'hover') { model.value = true } else { model.value = !model.value }
     }
 
     const popper = ref(null)
     const closePopOutSide = (e) => {
-      if (!popper.value.$el.contains(e.target)) {
+      if (!popper.value?.contains(e.target)) {
         model.value = false
       }
     }
@@ -132,7 +159,6 @@ export default {
     }
     return {
       popover,
-      showPanel,
       model,
       popTrigger,
       showPop,
@@ -147,7 +173,6 @@ export default {
 </script>
 
 <style lang="less">
-@gap:20px;
 .xl-inline-block{
   display: inline-block;
 }

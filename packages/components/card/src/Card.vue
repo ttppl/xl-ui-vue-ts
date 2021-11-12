@@ -11,8 +11,10 @@
 </template>
 
 <script type="text/ecmascript-6">
+import { computed } from '@vue/reactivity'
 import whCompute from '../../../mixins/whCompute'
 import { themeType } from '../../../types'
+import size from '@/mixins/size'
 export default {
   name: 'XlCard',
 
@@ -32,41 +34,49 @@ export default {
       default: ''
     },
 
-    lightStyle: Boolean
-  },
+    lightStyle: Boolean,
+    width: {
+      type: [Number, String],
+      default: 0
+    },
 
-  data () {
-    return {
+    height: {
+      type: [Number, String],
+      default: 0
     }
   },
 
-  computed: {
-    headerClass () {
-      return themeType(this.type || 'notice', 'card-header', this.lightStyle)
-    },
-
-    footerClass () {
-      return themeType(this.type || 'notice', 'bg', this.lightStyle)
-    },
-
-    contentClass () {
-      let classes = this.customClass || []
+  setup (props, ctx) {
+    const headerClass = computed(() => {
+      return themeType(props.type || 'notice', 'card-header', props.lightStyle)
+    })
+    const footerClass = computed(() => {
+      return themeType(props.type || 'notice', 'bg', props.lightStyle)
+    })
+    const contentClass = computed(() => {
+      let classes = props.customClass || []
       if (typeof classes === 'string') {
         classes = [classes]
       }
-      const type = themeType(this.type || 'notice', 'bd', this.lightStyle)
+      const type = themeType(props.type || 'notice', 'bd', props.lightStyle)
       return [...classes, type]
-    },
-
-    style () {
+    })
+    const { widthC, heightC } = size(props)
+    const style = computed(() => {
       const style = {}
-      if (!style.width && this.width !== 0) {
-        style.width = this.widthC
+      if (!style.width && props.width !== 0) {
+        style.width = widthC.value
       }
-      if (!style.height && this.height !== 0) {
-        style.height = this.heightC
+      if (!style.height && props.height !== 0) {
+        style.height = heightC.value
       }
       return style
+    })
+    return {
+      headerClass,
+      footerClass,
+      contentClass,
+      style
     }
   }
 }

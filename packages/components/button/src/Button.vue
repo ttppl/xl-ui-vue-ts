@@ -5,15 +5,17 @@
 </template>
 
 <script type="text/ecmascript-6">
-import whCompute from '../../../mixins/whCompute'
+import { computed, ref } from '@vue/reactivity'
+import size from '@/mixins/size'
 import { themeType } from '../../../types'
+import { nextTick, onMounted } from '@vue/runtime-core'
+import { go } from '@/utils/router'
+import { useRouter } from 'vue-router'
 export default {
   name: 'XlButton',
 
   components: {
   },
-
-  mixins: [whCompute],
 
   props: {
     type: {
@@ -21,8 +23,8 @@ export default {
       default: 'notice'
     },
 
-    lightStyle: Boolean,
-    plain: Boolean,
+    lightStyle: Boolean, // 明亮风格
+    plain: Boolean, // 边框风格
     popStyle: {
       type: Object,
       default () {
@@ -30,7 +32,7 @@ export default {
       }
     },
 
-    circle: {
+    circle: { // 圆形按钮
       type: Boolean,
       default: false
     },
@@ -40,7 +42,7 @@ export default {
       default: ''
     },
 
-    to: {
+    to: { // 路由地址
       type: String,
       default: ''
     }
@@ -48,81 +50,61 @@ export default {
 
   // emits: ['click'],
 
-  data () {
-    return {
-      maxSize: 0
-    }
-  },
-
-  computed: {
-
-    styleC () {
-      const style = { ...this.popStyle }
-      if (this.width !== 0) {
-        style.width = this.widthC
+  setup (props, ctx) {
+    // class
+    const classC = computed(() => {
+      const bg = props.plain ? themeType('white', 'bg') : themeType(props.type, 'bg', props.lightStyle)
+      const color = props.plain ? themeType(props.type, null)
+        : props.lightStyle ? themeType(props.type, null)
+          : themeType('white', null)
+      const border = props.plain ? themeType(props.type, 'bd', true)
+        : props.lightStyle ? themeType(props.type, 'bd', true) : ''
+      const bgHover = props.plain ? themeType(props.type, 'bg-hover', props.lightStyle)
+        : props.lightStyle ? themeType(props.type, 'bg-hover')
+          : themeType(props.type, 'bg-hover') + ' ' + 'xl-color-hover-brightness'
+      const colorHover = props.plain ? props.lightStyle ? themeType(props.type, 'hover')
+        : themeType('white', 'hover') : themeType('white', 'hover')
+      const borderHover = props.plain ? themeType(props.type, 'bd-hover', true) : ''
+      return [bg, bgHover, color, colorHover, border, borderHover]
+    })
+    // style
+    const maxSize = ref(0)// 按钮为圆形的时候需要取"宽高中的最大值"将圆形扩展成正方形再加上borderRadius：50%
+    const XlButton = ref(null)// XlButton-ref
+    onMounted(() => {
+      nextTick().then(() => {
+        maxSize.value = Math.max(XlButton.value.clientWidth, XlButton.value.clientHeight) + 10
+      })
+    })
+    const { widthC, heightC } = size(props)
+    const styleC = computed(() => {
+      const style = { ...props.popStyle }
+      if (props.width !== 0) {
+        style.width = widthC.value
       }
-      if (this.height !== 0) {
-        style.height = this.heightC
+      if (props.height !== 0) {
+        style.height = heightC.value
       }
-      if (this.circle) {
-        style.width = `${this.maxSize}px`
-        style.height = `${this.maxSize}px`
+      if (props.circle) {
+        style.width = `${maxSize.value}px`
+        style.height = `${maxSize.value}px`
         style.borderRadius = '50%'
       }
-      if (this.classC.join().includes('-bd-')) {
-        style.borderWidth = '0.5px'
+      if (classC.value.join().includes('-bd-')) {
+        style.borderWidth = '1px'
         style.borderStyle = 'solid'
       }
       return style
-    },
-
-    classC () {
-      const bg = this.plain ? themeType('white', 'bg') : themeType(this.type, 'bg', this.lightStyle)
-      const color = this.plain ? themeType(this.type, null)
-        : this.lightStyle ? themeType(this.type, null)
-          : themeType('white', null)
-      const border = this.plain ? themeType(this.type, 'bd', true)
-        : this.lightStyle ? themeType(this.type, 'bd', true) : ''
-      const bgHover = this.plain ? themeType(this.type, 'bg-hover', this.lightStyle)
-        : this.lightStyle ? themeType(this.type, 'bg-hover')
-          : themeType(this.type, 'bg-hover') + ' ' + 'xl-color-hover-brightness'
-      const colorHover = this.plain ? this.lightStyle ? themeType(this.type, 'hover')
-        : themeType('white', 'hover') : themeType('white', 'hover')
-      const borderHover = this.plain ? themeType(this.type, 'bd-hover', true) : ''
-      return [bg, bgHover, color, colorHover, border, borderHover]
-    }
-
-  },
-
-  created () {
-  },
-
-  mounted () {
-    this.$nextTick().then(() => {
-      this.maxSize = Math.max(this.$refs.XlButton.clientWidth, this.$refs.XlButton.clientHeight) + 10
     })
-  },
-
-  methods: {
-    clickHandler () {
-      this.go()
-      // this.$emit('click')
-    },
-
-    go () {
-      if (this.to && this.$router) {
-        if (this.to === '-1') {
-          this.$router.go(-1)
-        } else if (typeof this.to === 'string') {
-          if (this.to.slice(0, 1) !== '/') {
-            this.$router.push({ name: this.to })
-          } else {
-            this.$router.push({ path: this.to })
-          }
-        } else {
-          this.$router.push(this.to)
-        }
-      }
+    const router = useRouter()
+    const clickHandler = () => {
+      go(props.to, router)// 路由跳转
+      // ctx.emit('click')//click事件自动冒泡，无需emit
+    }
+    return {
+      classC,
+      styleC,
+      XlButton,
+      clickHandler
     }
   }
 }

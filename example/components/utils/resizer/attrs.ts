@@ -1,0 +1,31 @@
+export default [{
+  attrName: '参数1',
+  attrDesc: '目标元素',
+  type: 'HTMLElement',
+  accepted: '',
+  default: ''
+}, {
+  attrName: '参数2对象属性:transform',
+  attrDesc: '改变大小时是否位移目标元素',
+  type: 'Boolean/String',
+  accepted: 'true/false/\'offset\'',
+  default: 'false'
+}, {
+  attrName: '参数2对象属性:geometric',
+  attrDesc: '是否等比例缩放',
+  type: 'Boolean',
+  accepted: 'true/false',
+  default: 'false'
+}, {
+  attrName: '参数2对象属性:barWidth',
+  attrDesc: '缩放操作条宽度',
+  type: 'number',
+  accepted: '',
+  default: '5'
+}, {
+  attrName: '参数2对象属性:callback',
+  attrDesc: '回调函数',
+  type: 'function',
+  accepted: '',
+  default: ''
+}]

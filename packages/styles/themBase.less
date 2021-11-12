@@ -14,55 +14,55 @@ each(@baseColors, {
     color: @value;
   }
   .xl-color-@{key}-light{
-    color:fade(@value,@lightFade)
+    color:multiply(fade(@value,@lightFade), white)
   }
   .xl-color-bg-@{key}{
     background-color: @value;
   }
   .xl-color-bg-@{key}-light{
-    background-color:fade(@value,@lightFade)
+    background-color:multiply(fade(@value,@lightFade), white)
   }
   .xl-color-bd-@{key}{
     border-color: @value;
   }
   .xl-color-bd-@{key}-light{
-    border-color:fade(@value,@lightFade)
+    border-color:multiply(fade(@value,@lightFade), white)
   }
   .xl-color-hover-@{key}:hover{
     color: @value;
   }
   .xl-color-hover-@{key}-light:hover{
-    color:fade(@value,@lightFade)
+    color:multiply(fade(@value,@lightFade), white)
   }
   .xl-color-bg-hover-@{key}:hover{
     background-color: @value;
   }
   .xl-color-bg-hover-@{key}-light:hover{
-    background-color:fade(@value,@lightFade)
+    background-color:multiply(fade(@value,@lightFade), white)
   }
   .xl-color-bd-hover-@{key}:hover{ 
     border-color: @value;
   }
   .xl-color-bd-hover-@{key}-light:hover{ 
-    border-color: fade(@value,@lightFade);
+    border-color: multiply(fade(@value,@lightFade), white);
   }
   .xl-color-focus-@{key}:focus-within{
     color: @value;
   }
   .xl-color-focus-@{key}-light:focus-within{
-    color: fade(@value,@lightFade);
+    color: multiply(fade(@value,@lightFade), white);
   }
   .xl-color-bg-focus-@{key}:focus-within{
     background-color: @value;
   }
   .xl-color-bg-focus-@{key}-light:focus-within{
-    background-color: fade(@value,@lightFade);
+    background-color: multiply(fade(@value,@lightFade), white);
   }
   .xl-color-bd-focus-@{key}:focus-within{
     border-color: @value;
   }
   .xl-color-bd-focus-@{key}-light:focus-within{
-    border-color: fade(@value,@lightFade);
+    border-color: multiply(fade(@value,@lightFade), white);
   }
   
 
@@ -73,7 +73,7 @@ each(@baseColors, {
     background-repeat: no-repeat;
   }
   .xl-color-bookmark-bg-@{key}-light when (@key=primary),(@key=white),(@key=warn),(@key=notice),(@key=error),(@key=success){
-    background: linear-gradient(-135deg, transparent 10px, fade(@value,@lightFade) 0) top right;
+    background: linear-gradient(-135deg, transparent 10px, multiply(fade(@value,@lightFade), white) 0) top right;
     background-size: 100% 100%;
     background-repeat: no-repeat;
   }
@@ -87,7 +87,7 @@ each(@baseColors, {
     background-repeat: no-repeat;
   }
   .xl-color-card-header-@{key}-light{
-    background: linear-gradient(-145deg, transparent 15px, fade(@value,@lightFade) 0);
+    background: linear-gradient(-145deg, transparent 15px, multiply(fade(@value,@lightFade), white) 0);
     background-size: 100% 100%;
     background-repeat: no-repeat;
   }

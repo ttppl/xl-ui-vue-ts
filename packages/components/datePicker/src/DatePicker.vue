@@ -1,4 +1,4 @@
-s<template>
+<template>
   <div v-clickoutside="closePicker" class="XlDatePicker">
     <div ref="datePicker" :style="style" :class="classes" class="input" @click="showPicker=!showPicker">
       <Icon :light-style="lightStyle" :type="showPicker?type:'notice'" icon="calender" class="icon" size="30" />
@@ -77,13 +77,13 @@ s<template>
 </template>
 
 <script type="text/ecmascript-6">
-import clickoutside from '../../../utils/clickouside'
-import WHcomputed from '../../../mixins/whCompute'
-import { getDate } from '../../../utils/utils'
+import clickoutside from '@/directives/clickOutside'
+import WHcomputed from '@/mixins/whCompute'
+import { getDate } from '@/utils/common'
 import { computed } from 'vue'
-import Popper from '../../popover/src/Popper'
-import Icon from '../../icon/src/Icon'
-import { themeType } from '../../../types'
+import Popper from '@/components/popover/src/Popper.vue'
+import Icon from '@/components/icon'
+import { themeType } from '@/types'
 export default {
   name: 'XlDatePicker',
 

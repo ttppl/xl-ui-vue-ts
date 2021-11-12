@@ -4,7 +4,8 @@
 
 <script type="text/ecmascript-6">
 import { computed } from '@vue/reactivity'
-import { themeType } from '../../../types'
+import { themeType } from '@/types'
+import { hasClick } from '@/utils/vmUtils'
 export default {
   name: 'XlIcon',
 
@@ -46,7 +47,7 @@ export default {
 
     cursor: {
       type: String,
-      default: 'default'
+      default: ''
     },
 
     size: {
@@ -60,8 +61,8 @@ export default {
       const iconType = `xl-icon-${props.icon}`
       const color = themeType(props.type, null, props.lightStyle)
       const block = { 'xl-icon-block': props.block }
-      const pointer = { 'xl-icon-pointer': ctx.attrs.onClick }
-      return [iconType, color, block, pointer]
+      // const pointer = { 'xl-icon-pointer': ctx.attrs.onClick }
+      return [iconType, color, block]
     })
     const style = computed(() => {
       const style = { ...props.popStyle }
@@ -69,7 +70,7 @@ export default {
         style.color = props.color
       }
       style.fontSize = `${props.size}px`
-      style.cursor = props.cursor
+      style.cursor = props.cursor || (hasClick(ctx) ? 'pointer' : 'default')
       return style
     })
     return {
@@ -84,8 +85,5 @@ export default {
 @import url('./icons.less');
 .xl-icon-block{
   display: inline-block;
-}
-.xl-icon-pointer{
-  cursor: pointer!important;
 }
 </style>

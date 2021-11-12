@@ -9,7 +9,7 @@
     "serve": "vue-cli-service serve",
     "buildc": "vue-cli-service build --no-clean --mode buildcomponent",
     "build": "vue-cli-service build --target lib --name xl-ui --dest lib packages/index.ts",
-    "buildE":"vue-cli-service build",
+    "buildE": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "pack": "npm run build && npm pack && npm i xl-ui-vue3-0.0.1-beta-0.0.5.tgz && npm run serve",
     "buildInput": "vue-cli-service build --target lib --name index --dest lib/xl-input packages/input/index.js",
@@ -17,6 +17,7 @@
     "lib": "cross-env NODE_ENV=production rimraf ./lib && node ./build/rollup.build"
   },
   "dependencies": {
+    "@popperjs/core": "^2.10.2",
     "core-js": "^3.6.5",
     "vue": "^3.0.0",
     "vue-class-component": "^8.0.0-0",

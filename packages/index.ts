@@ -25,3 +25,9 @@ if (typeof window !== 'undefined' && (window as any).Vue) {
 export default {
   install
 }
+
+// 插件
+export { default as ClickOutside } from './utils/clickOutside'
+
+// 指令
+export { default as clickOutside } from './directives/clickOutside'

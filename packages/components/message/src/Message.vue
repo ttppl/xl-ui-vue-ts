@@ -1,52 +1,53 @@
 <template>
-  <transition name="sp-message-fade" @before-leave="onClose" @after-leave="$emit('destroy')">
+  <transition :name="`tst-fade${'-'+position}`" @before-leave="onClose" @after-leave="$emit('destroy')">
     <div v-show="visible" :id="id" role="alert"
+         class="message-box"
          :class="classes"
          :style="customStyle"
+         :show-close="!autoClose||showClose"
+         :show-icon="icon!==false"
+         :position="position"
          @mouseenter="clearTimer" @mouseleave="startTimer"
     >
-      <i v-if="type || iconClass" :class="[typeClass, iconClass]" />
+      <Icon v-if="icon!==false" class="message-icon" :type="type" :icon="iconType" />
       <slot>
-        <p v-if="!dangerouslyUseHTMLString" class="sp-message__content">{{ message }}</p>
-        <p v-else class="sp-message__content" v-html="message" />
+        <p v-if="!html" :center="center" class="message-content">{{ message }}</p>
+        <p v-else class="message-content" :center="center" v-html="message" />
       </slot>
-      <svg v-if="showClose" t="1628760798220" class="icon sp-message__closeBtn" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2029" width="20" height="20" @click.stop="close"><path d="M557.312 513.248l265.28-263.904c12.544-12.48 12.608-32.704 0.128-45.248-12.512-12.576-32.704-12.608-45.248-0.128L512.128 467.904l-263.04-263.84c-12.448-12.48-32.704-12.544-45.248-0.064-12.512 12.48-12.544 32.736-0.064 45.28l262.976 263.776L201.6 776.8c-12.544 12.48-12.608 32.704-0.128 45.248a31.937 31.937 0 0 0 22.688 9.44c8.16 0 16.32-3.104 22.56-9.312l265.216-263.808 265.44 266.24c6.24 6.272 14.432 9.408 22.656 9.408a31.94 31.94 0 0 0 22.592-9.344c12.512-12.48 12.544-32.704 0.064-45.248L557.312 513.248z" p-id="2030" fill="#bfbfbf" /></svg>
+      <Icon v-if="!autoClose||showClose" :type="type" icon="close" class="message-close-btn" @click.stop="close" />
     </div>
   </transition>
 </template>
 
 <script lang="javascript">
 // eslint-disable-next-line no-unused-vars
-import { defineComponent, computed, ref, PropType, onMounted, onBeforeUnmount } from 'vue'
+import { defineComponent, computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { EVENT_CODE } from '@/utils'
 import { on, off } from '@/utils/dom'
-const TypeMap = {
-  success: 'success',
-  info: 'info',
-  warning: 'warning',
-  error: 'error'
+import Icon from '@/components/icon'
+import { isBoolean } from '@/utils/common'
+import { themeType } from '@/types'
+const IconMap = {
+  success: 'emj-happy',
+  primary: 'emj-smile',
+  warn: 'emj-none',
+  error: 'emj-fail',
+  notice: 'emj-smile'
 }
 export default defineComponent({
-  name: 'ElMessage',
+  name: 'XlMessage',
+  components: { Icon },
   props: {
-    customClass: { type: String, default: '' },
-    center: { type: Boolean, default: false },
-    dangerouslyUseHTMLString: { type: Boolean, default: false },
-    duration: { type: Number, default: 3000 },
-    iconClass: { type: String, default: '' },
-    id: { type: String, default: '' },
-    message: {
-      type: [String, Object],
-      default: ''
-    },
-
-    onClose: {
-      type: Function,
-      required: true
-    },
-
+    message: { type: [String, Object], default: '' },
+    position: { type: String, default: 'center' },
+    type: { type: String, default: 'primary' },
     showClose: { type: Boolean, default: false },
-    type: { type: String, default: 'info' },
+    icon: { type: [String, Boolean], default: true },
+    duration: { type: Number, default: 3000 },
+    id: { type: String, default: '' },
+    center: { type: Boolean, default: false },
+    html: { type: Boolean, default: false },
+    onClose: { type: Function, required: true },
     offset: { type: Number, default: 20 },
     zIndex: { type: Number, default: 0 }
   },
@@ -54,17 +55,15 @@ export default defineComponent({
   emits: ['destroy'],
   setup (props) {
     const classes = computed(() => {
-      return ['sp-message',
-        props.type && !props.iconClass ? `sp-message--${props.type}` : '',
-        props.center ? 'is-center' : '',
-        props.showClose ? 'is-closable' : '', props.customClass]
+      const bg = themeType(props.type, 'bg', true)
+      return [bg]
+      // return [
+      //   props.type && !props.iconClass ? `sp-message--${props.type}` : '',
+      //   props.center ? 'is-center' : '',
+      //   props.showClose ? 'is-closable' : '', props.customClass]
     })
-
-    const typeClass = computed(() => {
-      const type = props.type
-      return type && TypeMap[type]
-        ? `sp-message__icon el-icon-${TypeMap[type]}`
-        : ''
+    const iconType = computed(() => {
+      return isBoolean(props.icon) ? IconMap[props.type] : props.icon
     })
     const customStyle = computed(() => {
       return {
@@ -75,8 +74,11 @@ export default defineComponent({
 
     const visible = ref(false)
     let timer = null
-
+    const autoClose = computed(() => {
+      return parseFloat(props.duration) !== 0
+    })
     function startTimer () {
+      if (!autoClose.value) return
       if (props.duration > 0) {
         timer = setTimeout(() => {
           if (visible.value) {
@@ -87,6 +89,7 @@ export default defineComponent({
     }
 
     function clearTimer () {
+      if (!autoClose.value) return
       clearTimeout(timer)
       timer = null
     }
@@ -117,10 +120,13 @@ export default defineComponent({
     })
 
     return {
+      iconType,
+
       classes,
-      typeClass,
+      // typeClass,
       customStyle,
       visible,
+      autoClose,
 
       close,
       clearTimer,
@@ -131,132 +137,97 @@ export default defineComponent({
 </script>
 
 <style scoped lang="less">
-.sp-message {
-    min-width: 380px;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
-    border-radius: 4px;
-    border-width: 1px;
-    border-style: solid;
-    border-color: #EBEEF5;
-    position: fixed;
+.tst-fade-center-enter-from,
+.tst-fade-center-leave-to {
+  opacity: 0;
+  -webkit-transform: translate(-50%, -100%) !important;
+  transform: translate(-50%, -100%) !important;
+}
+.tst-fade-enter-from,
+.tst-fade-leave-to {
+  opacity: 0;
+  -webkit-transform: translate(-50%, -100%);
+  transform: translate(-50%, -100%);
+}
+.tst-fade-left-enter-from,
+.tst-fade-left-leave-to {
+  opacity: 0;
+  transform: translate(-100%,-100%);
+}
+.tst-fade-right-enter-from,
+.tst-fade-right-leave-to {
+  opacity: 0;
+  transform: translate(100%,-100%);
+}
+
+.message-box {
+  min-width: 380px;
+  min-height: 40px;
+  max-width: 100%;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  border-radius: 4px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #EBEEF5;
+  position: fixed;
+  -webkit-transition: opacity .3s, top .4s, -webkit-transform .4s;
+  transition: opacity .3s, top .4s, -webkit-transform .4s;
+  transition: opacity .3s, transform .4s, top .4s;
+  transition: opacity .3s, transform .4s, top .4s, -webkit-transform .4s;
+  overflow: hidden;
+  padding: 15px 15px 15px 20px;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  top: 20px;
+  &[position="center"]{
     left: 50%;
-    top: 20px;
     -webkit-transform: translateX(-50%);
     transform: translateX(-50%);
-    background-color: #edf2fc;
-    -webkit-transition: opacity .3s, top .4s, -webkit-transform .4s;
-    transition: opacity .3s, top .4s, -webkit-transform .4s;
-    transition: opacity .3s, transform .4s, top .4s;
-    transition: opacity .3s, transform .4s, top .4s, -webkit-transform .4s;
-    overflow: hidden;
-    padding: 15px 15px 15px 20px;
-    display: -webkit-box;
-    display: -ms-flexbox;
-    display: flex;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
-    align-items: center
-}
-
-.sp-message.is-center {
-    -webkit-box-pack: center;
-    -ms-flex-pack: center;
-    justify-content: center
-}
-
-.sp-message.is-closable .sp-message__content {
-    padding-right: 16px
-}
-
-.sp-message p {
-    margin: 0
-}
-
-.sp-message--info .sp-message__content {
-    color: #909399
-}
-
-.sp-message--success {
-    background-color: #f0f9eb;
-    border-color: #e1f3d8
-}
-
-.sp-message--success .sp-message__content {
-    color: #67C23A
-}
-
-.sp-message--warning {
-    background-color: #fdf6ec;
-    border-color: #faecd8
-}
-
-.sp-message--warning .sp-message__content {
-    color: #E6A23C
-}
-
-.sp-message--error {
-    background-color: #fef0f0;
-    border-color: #fde2e2
-}
-
-.sp-message--error .sp-message__content {
-    color: #F56C6C
-}
-
-.sp-message__icon {
-    margin-right: 10px
-}
-
-.sp-message__content {
-    padding: 0;
-    font-size: 14px;
-    line-height: 1
-}
-
-.sp-message__content:focus {
-    outline-width: 0
-}
-
-.sp-message__closeBtn {
+  }
+  &[position="left"]{
+    left:20px;
+  }
+  &[position="right"]{
+    right:20px;
+  }
+  .message-icon{
+    margin-right: 10px;
     position: absolute;
-    top: 50%;
+    top: 13px;
+    left: 15px;
+  }
+  &[show-close="true"] .message-content{
+    padding-right: 20px;
+  }
+  &[show-icon="true"] .message-content{
+    padding-left: 25px;
+  }
+  .message-content{
+    font-size: 16px;
+    line-height: 1;
+    // word-wrap:break-word;
+    word-break: break-all;
+    margin:0;
+    &[center="true"]{
+      display: flex;
+      justify-content: center;
+      align-content: center;
+    }
+  }
+  .message-close-btn{
+    opacity: 0.5;
+    position: absolute;
+    top: 13px;
     right: 15px;
-    -webkit-transform: translateY(-50%);
-    transform: translateY(-50%);
+    // -webkit-transform: translateY(-50%);
+    // transform: translateY(-50%);
     cursor: pointer;
-    color: #C0C4CC;
-    font-size: 16px
-}
-
-.sp-message__closeBtn:focus {
-    outline-width: 0
-}
-
-.sp-message__closeBtn:hover {
-    color: #909399
-}
-
-.sp-message .el-icon-success {
-    color: #67C23A
-}
-
-.sp-message .el-icon-error {
-    color: #F56C6C
-}
-
-.sp-message .el-icon-info {
-    color: #909399
-}
-
-.sp-message .el-icon-warning {
-    color: #E6A23C
-}
-
-.sp-message-fade-enter-from,
-.sp-message-fade-leave-to {
-    opacity: 0;
-    -webkit-transform: translate(-50%, -100%);
-    transform: translate(-50%, -100%)
+    font-size: 16px;
+    &:hover{
+      transition: transform .3s;
+      transform: scale(1.3);
+    }
+  }
 }
 </style>

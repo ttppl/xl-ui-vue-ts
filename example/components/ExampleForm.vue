@@ -8,7 +8,7 @@
       <XlCollapse>
         <div v-show="showCode" v-highlight class="example-code">
           <pre>
-              <slot name="code" />
+            <slot name="code" />
           </pre>
         </div>
       </XlCollapse>
@@ -17,6 +17,9 @@
 </template>
 
 <script type="text/ecmascript-6">
+import { ref } from '@vue/reactivity'
+import { nextTick, onMounted } from '@vue/runtime-core'
+// import hljs from 'highlight.min.js'
 export default {
   name: 'ExampleForm',
 
@@ -32,22 +35,32 @@ export default {
     }
   },
 
-  data () {
-    return {
-      showCode: false
+  setup (props, ctx) {
+    const showCode = ref(false)
+    // const exampleHtml = ref(null)
+    // const code = ref('')
+    // const codeRef = ref(null)
+    // onMounted(() => {
+    //   code.value = exampleHtml.value.innerHTML
+    //   nextTick().then(() => {
+    //     hljs.configure({ useBR: true })
+    //     const blocks = codeRef.value.querySelectorAll('pre code')
+    //     console.log(blocks)
+    //     blocks.forEach((block) => {
+    //       hljs.highlightBlock(block)
+    //     })
+    //   })
+    // })
+    function show () {
+      showCode.value = true
     }
-  },
-
-  computed: {
-  },
-
-  created () {
-  },
-
-  mounted () {
-  },
-
-  methods: {
+    return {
+      showCode,
+      show
+      // exampleHtml,
+      // code,
+      // codeRef
+    }
   }
 }
 </script>

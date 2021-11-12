@@ -12,7 +12,7 @@
 <script type="text/ecmascript-6">
 import { ref, reactive, computed } from 'vue'
 import { themeType } from '@/types'
-import { isNum } from '@/utils/utils'
+import { isNum } from '@/utils/common'
 export default {
   name: 'XlTag',
 

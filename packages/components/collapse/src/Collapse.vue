@@ -5,131 +5,85 @@
 </template>
 
 <script>
+import { addClass, getStyle, removeClass } from '@/utils/dom'
 import { defineComponent } from 'vue'
-const trim = function (string) {
-  return (string || '').replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '')
-}
-function hasClass (el, cls) {
-  if (!el || !cls) return false
-  if (cls.indexOf(' ') !== -1) throw new Error('className should not contain space.')
-  if (el.classList) {
-    return el.classList.contains(cls)
-  } else {
-    return (' ' + el.className + ' ').indexOf(' ' + cls + ' ') > -1
-  }
-}
-function addClass (el, cls) {
-  if (!el) return
-  var curClass = el.className
-  var classes = (cls || '').split(' ')
-
-  for (var i = 0, j = classes.length; i < j; i++) {
-    var clsName = classes[i]
-    if (!clsName) continue
-
-    if (el.classList) {
-      el.classList.add(clsName)
-    } else if (!hasClass(el, clsName)) {
-      curClass += ' ' + clsName
-    }
-  }
-  if (!el.classList) {
-    el.className = curClass
-  }
-}
-function removeClass (el, cls) {
-  if (!el || !cls) return
-  var classes = cls.split(' ')
-  var curClass = ' ' + el.className + ' '
-
-  for (var i = 0, j = classes.length; i < j; i++) {
-    var clsName = classes[i]
-    if (!clsName) continue
-
-    if (el.classList) {
-      el.classList.remove(clsName)
-    } else if (hasClass(el, clsName)) {
-      curClass = curClass.replace(' ' + clsName + ' ', ' ')
-    }
-  }
-  if (!el.classList) {
-    el.className = trim(curClass)
-  }
-}
 export default defineComponent({
   name: 'XlCollapse',
   setup () {
-    return {
-      on: {
-        beforeEnter (el) {
+    let height = 0
+    const on = {
+      beforeEnter (el) {
+        if (!el.dataset) el.dataset = {}
+        el.dataset.oldPaddingTop = el.style.paddingTop
+        el.dataset.oldPaddingBottom = el.style.paddingBottom
+        el.dataset.oldMarginTop = el.style.marginTop
+        el.dataset.oldMarginBottom = el.style.marginBottom
+        // slot里只能使用v-show，v-if可能会获取不到height属性
+        height = parseFloat(getStyle(el, 'height')) || 0
+        el.style.height = '0'
+        el.style.paddingTop = 0
+        el.style.paddingBottom = 0
+
+        addClass(el, 'collapse-transition')
+      },
+
+      enter (el) {
+        el.dataset.oldOverflow = el.style.overflow
+        if (el.scrollHeight !== 0) {
+          el.style.height = Math.max(el.scrollHeight, height) + 'px'
+        } else {
+          el.style.height = ''
+        }
+        el.style.paddingTop = el.dataset.oldPaddingTop
+        el.style.paddingBottom = el.dataset.oldPaddingBottom
+        el.style.marginTop = el.dataset.oldMarginTop
+        el.style.marginBottom = el.dataset.oldMarginBottom
+
+        el.style.overflow = 'hidden'
+      },
+
+      afterEnter (el) {
+        removeClass(el, 'collapse-transition')
+        el.style.height = ''
+        el.style.overflow = el.dataset.oldOverflow
+      },
+
+      beforeLeave (el) {
+        if (!el.dataset) el.dataset = {}
+        el.dataset.oldPaddingTop = el.style.paddingTop
+        el.dataset.oldPaddingBottom = el.style.paddingBottom
+        el.dataset.oldMarginTop = el.style.marginTop
+        el.dataset.oldMarginBottom = el.style.marginBottom
+        el.dataset.oldOverflow = el.style.overflow
+
+        el.style.height = Math.max(el.scrollHeight, height) + 'px'
+        el.style.overflow = 'hidden'
+      },
+
+      leave (el) {
+        if (el.scrollHeight !== 0) {
           addClass(el, 'collapse-transition')
-          if (!el.dataset) el.dataset = {}
-
-          el.dataset.oldPaddingTop = el.style.paddingTop
-          el.dataset.oldPaddingBottom = el.style.paddingBottom
-          el.dataset.oldMarginTop = el.style.marginTop
-          el.dataset.oldMarginBottom = el.style.marginBottom
-
-          el.style.height = '0'
+          el.style.transitionProperty = 'height'
+          el.style.height = 0
           el.style.paddingTop = 0
           el.style.paddingBottom = 0
-        },
-
-        enter (el) {
-          el.dataset.oldOverflow = el.style.overflow
-          if (el.scrollHeight !== 0) {
-            el.style.height = el.scrollHeight + 'px'
-          } else {
-            el.style.height = ''
-          }
-          el.style.paddingTop = el.dataset.oldPaddingTop
-          el.style.paddingBottom = el.dataset.oldPaddingBottom
-          el.style.marginTop = el.dataset.oldMarginTop
-          el.style.marginBottom = el.dataset.oldMarginBottom
-
-          el.style.overflow = 'hidden'
-        },
-
-        afterEnter (el) {
-          removeClass(el, 'collapse-transition')
-          el.style.height = ''
-          el.style.overflow = el.dataset.oldOverflow
-        },
-
-        beforeLeave (el) {
-          if (!el.dataset) el.dataset = {}
-          el.dataset.oldPaddingTop = el.style.paddingTop
-          el.dataset.oldPaddingBottom = el.style.paddingBottom
-          el.dataset.oldMarginTop = el.style.marginTop
-          el.dataset.oldMarginBottom = el.style.marginBottom
-          el.dataset.oldOverflow = el.style.overflow
-
-          el.style.height = el.scrollHeight + 'px'
-          el.style.overflow = 'hidden'
-        },
-
-        leave (el) {
-          if (el.scrollHeight !== 0) {
-            addClass(el, 'collapse-transition')
-            el.style.transitionProperty = 'height'
-            el.style.height = 0
-            el.style.paddingTop = 0
-            el.style.paddingBottom = 0
-            el.style.marginTop = 0
-            el.style.marginBottom = 0
-          }
-        },
-
-        afterLeave (el) {
-          removeClass(el, 'collapse-transition')
-          el.style.height = ''
-          el.style.overflow = el.dataset.oldOverflow
-          el.style.paddingTop = el.dataset.oldPaddingTop
-          el.style.paddingBottom = el.dataset.oldPaddingBottom
-          el.style.marginTop = el.dataset.oldMarginTop
-          el.style.marginBottom = el.dataset.oldMarginBottom
+          el.style.marginTop = 0
+          el.style.marginBottom = 0
         }
+      },
+
+      afterLeave (el) {
+        removeClass(el, 'collapse-transition')
+        el.style.height = ''
+        el.style.overflow = el.dataset.oldOverflow
+        el.style.paddingTop = el.dataset.oldPaddingTop
+        el.style.paddingBottom = el.dataset.oldPaddingBottom
+        el.style.marginTop = el.dataset.oldMarginTop
+        el.style.marginBottom = el.dataset.oldMarginBottom
       }
+    }
+    return {
+      on
     }
   }
 })
